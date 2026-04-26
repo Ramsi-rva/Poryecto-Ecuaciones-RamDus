@@ -11,6 +11,7 @@ function App() {
      <div>
       <h1>Hola Mundo</h1>
       <p>Asi puedes poner cosas como en HTML DUSTIN</p>
+      <p>Putita</p>
     </div>
   )
 }

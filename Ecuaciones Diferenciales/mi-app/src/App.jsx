@@ -9,7 +9,7 @@ function App() {
 
   return (
      <div>
-      <h1>Hola Mundo Pendejos idiotas</h1>
+      <h1>Hola Mundo Pendejos idiota</h1>
       <p>Asi puedes poner cosas como en HTML DUSTIN</p>
       <p>Putita</p>
     </div>

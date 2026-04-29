@@ -5,13 +5,16 @@ import heroImg from './assets/hero.png'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-     <div>
-      <h1>Hola Mundo Pendejos idiota</h1>
-      <p>Asi puedes poner cosas como en HTML DUSTIN</p>
-      <p>Putita</p>
+    <div className="App">
+      <header>
+        <h1>Probabilidad y Estadística</h1>
+        <p>Calculadora de Probabilidades y Distribución de Probabilidad</p>
+      </header>
+      
+      <main>
+        <p>Proyecto iniciado</p>
+      </main>
     </div>
   )
 }

@@ -95,25 +95,10 @@ export const distApi = {
 // ── Valor Esperado ────────────────────────────────────────────
 // ── Valor Esperado ────────────────────────────────────────────
 export const expectedValueApi = {
-  /**
-   * Calcula E(X) usando f(x)
-   * @param {number[]} xValues
-   * @param {string} fxExpression
-   */
   fx: (xValues, fxExpression) =>
     post('/expected-value/fx', {
       xValues,
       fxExpression,
-    }),
-
-  /**
-   * Calcula E(X), E(Y), Cov(X,Y)
-   */
-  fxy: (xValues, yValues, fxyExpression) =>
-    post('/expected-value/fxy', {
-      xValues,
-      yValues,
-      fxyExpression,
     }),
 }
 

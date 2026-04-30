@@ -14,6 +14,8 @@ function App() {
       <NormalPanel />
     </div>
   )
+  
 }
 
+export default App
 export default App

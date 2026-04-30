@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getSaludo } from './services/api';
+import { getSaludo } from './utils/api';
 import './App.css'
 
 function App() {

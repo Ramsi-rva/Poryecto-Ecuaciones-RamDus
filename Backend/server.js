@@ -6,10 +6,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const saludoRoutes = require('./routes/saludo.routes');
+const statsRoutes = require('./routes/stats.routes');
+const distRoutes = require('./routes/distributions.routes');
 
-app.use('/api/saludo', saludoRoutes);
+app.use('/api/stats', statsRoutes);
+app.use('/api/distributions', distRoutes);
 
-app.listen(3000, () => {
-  console.log('Servidor corriendo');
+app.listen(3001, () => {
+  console.log('Backend en http://localhost:3001');
 });

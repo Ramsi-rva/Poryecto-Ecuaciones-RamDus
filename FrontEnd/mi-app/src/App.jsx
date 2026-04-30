@@ -57,10 +57,7 @@ function App() {
   <img src={heroImg} alt="Fondo" className="background-image" />
   <div className="overlay"></div>
   <div className="hero-section">
-    <h1 className="main-title-minimal">
-      CALCULADORA DE<br />
-      PROBABILIDAD Y ESTADÍSTICA
-    </h1>
+    
   </div>
 </div>
 

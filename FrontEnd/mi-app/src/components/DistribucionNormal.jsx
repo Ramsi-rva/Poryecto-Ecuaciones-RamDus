@@ -28,13 +28,13 @@ return (1 / (sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * z * z)
 // ── Componente de gráfica SVG ─────────────────────────────────
 function NormalCurveChart({ mu, sigma, mode, a, b }) {
   const W = 520
-  const H = 220
+  const H = 240
 
   const PAD = {
     top: 20,
     right: 25,
-    bottom: 38,
-    left: 25
+    bottom: 48,   // más espacio para etiquetas
+    left: 35
   }
 
   const plotW = W - PAD.left - PAD.right
@@ -51,59 +51,39 @@ function NormalCurveChart({ mu, sigma, mode, a, b }) {
       xMin = Math.min(xMin, a - sigma * 1.5)
       xMax = Math.max(xMax, a + sigma * 1.5)
     }
-
     if (validB) {
       xMin = Math.min(xMin, b - sigma * 1.5)
       xMax = Math.max(xMax, b + sigma * 1.5)
     }
 
     const range = xMax - xMin
-
     const pts = []
     const STEPS = 500
-
     for (let i = 0; i <= STEPS; i++) {
       const x = xMin + (i / STEPS) * range
-      pts.push({
-        x,
-        y: pdf(x, mu, sigma)
-      })
+      pts.push({ x, y: pdf(x, mu, sigma) })
     }
-
     return { pts, xMin, xMax }
   }, [mu, sigma, a, b])
 
   const { pts, xMin, xMax } = chartData
-
   const yMax = Math.max(...pts.map(p => p.y)) * 1.15
 
-  const toSvgX = (x) =>
-    PAD.left + ((x - xMin) / (xMax - xMin)) * plotW
-
-  const toSvgY = (y) =>
-    PAD.top + plotH - (y / yMax) * plotH
+  const toSvgX = (x) => PAD.left + ((x - xMin) / (xMax - xMin)) * plotW
+  const toSvgY = (y) => PAD.top + plotH - (y / yMax) * plotH
 
   const linePath = pts
-    .map((p, i) =>
-      `${i === 0 ? 'M' : 'L'}${toSvgX(p.x)},${toSvgY(p.y)}`
-    )
+    .map((p, i) => `${i === 0 ? 'M' : 'L'}${toSvgX(p.x).toFixed(2)},${toSvgY(p.y).toFixed(2)}`)
     .join(' ')
 
   const baseY = toSvgY(0)
 
-  // SOMBREADO INTELIGENTE
   const shadePath = useMemo(() => {
     let shadeStart = xMin
     let shadeEnd = xMax
 
-    if (mode === 'leq') {
-      shadeEnd = isFinite(b) ? b : xMax
-    }
-
-    if (mode === 'geq') {
-      shadeStart = isFinite(a) ? a : xMin
-    }
-
+    if (mode === 'leq') shadeEnd = isFinite(b) ? b : xMax
+    if (mode === 'geq') shadeStart = isFinite(a) ? a : xMin
     if (mode === 'between') {
       shadeStart = isFinite(a) ? a : xMin
       shadeEnd = isFinite(b) ? b : xMax
@@ -111,126 +91,156 @@ function NormalCurveChart({ mu, sigma, mode, a, b }) {
 
     if (shadeStart >= shadeEnd) return ''
 
-    const shadePts = pts.filter(
-      p => p.x >= shadeStart && p.x <= shadeEnd
-    )
-
+    const shadePts = pts.filter(p => p.x >= shadeStart && p.x <= shadeEnd)
     if (shadePts.length < 2) return ''
 
     const start = shadePts[0]
     const end = shadePts[shadePts.length - 1]
 
     const path = shadePts
-      .map((p, i) =>
-        `${i === 0 ? 'M' : 'L'}${toSvgX(p.x)},${toSvgY(p.y)}`
-      )
+      .map((p, i) => `${i === 0 ? 'M' : 'L'}${toSvgX(p.x).toFixed(2)},${toSvgY(p.y).toFixed(2)}`)
       .join(' ')
 
-    return `
-      ${path}
-      L ${toSvgX(end.x)} ${baseY}
-      L ${toSvgX(start.x)} ${baseY}
-      Z
-    `
+    return `${path} L${toSvgX(end.x).toFixed(2)} ${baseY} L${toSvgX(start.x).toFixed(2)} ${baseY} Z`
   }, [pts, mode, a, b, xMin, xMax])
 
-  // ESCALA DINÁMICA
+  // Ticks: siempre incluye los valores de a y b si son finitos
   const ticks = useMemo(() => {
     const range = xMax - xMin
-
     let step
-
     if (range <= 1) step = 0.1
+    else if (range <= 5) step = 0.5
     else if (range <= 10) step = 1
-    else if (range <= 100) step = 10
-    else if (range <= 1000) step = 100
-    else step = Math.pow(10, Math.floor(Math.log10(range)) - 1)
+    else if (range <= 50) step = 5
+    else step = 10
 
     const first = Math.ceil(xMin / step) * step
-
     const arr = []
-
-    for (let x = first; x <= xMax; x += step) {
+    for (let x = first; x <= xMax + 0.0001; x += step) {
       arr.push(Number(x.toFixed(4)))
     }
 
-    return arr
-  }, [xMin, xMax])
+    // Añadir a y b si son finitos y no están ya incluidos
+    const extra = []
+    if (isFinite(a) && !arr.some(t => Math.abs(t - a) < step * 0.1)) extra.push(a)
+    if (isFinite(b) && !arr.some(t => Math.abs(t - b) < step * 0.1)) extra.push(b)
+
+    return [...arr, ...extra].sort((x, y) => x - y)
+  }, [xMin, xMax, a, b])
+
+  // Formato de etiqueta: sin decimales innecesarios
+  const fmtTick = (x) => {
+    if (Number.isInteger(x)) return String(x)
+    const s = x.toFixed(2)
+    return s.replace(/\.?0+$/, '')
+  }
+
+  // Detectar si un tick es valor de corte (a o b)
+  const isCutoff = (x) =>
+    (isFinite(a) && Math.abs(x - a) < 0.0001) ||
+    (isFinite(b) && Math.abs(x - b) < 0.0001)
 
   return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      className="dn-chart"
-    >
+    <svg viewBox={`0 0 ${W} ${H}`} className="dn-chart">
       <defs>
         <linearGradient id="shadeGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--dn-accent)" stopOpacity="0.55" />
-          <stop offset="100%" stopColor="var(--dn-accent)" stopOpacity="0.12" />
+          <stop offset="0%" stopColor="#16a34a" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#16a34a" stopOpacity="0.08" />
         </linearGradient>
       </defs>
 
-      <line
-        x1={PAD.left}
-        y1={baseY}
-        x2={PAD.left + plotW}
-        y2={baseY}
-        stroke="var(--dn-line)"
-      />
+      {/* Fondo blanco explícito */}
+      <rect x="0" y="0" width={W} height={H} fill="#ffffff" rx="8" />
 
-      <line
-        x1={toSvgX(mu)}
-        y1={PAD.top}
-        x2={toSvgX(mu)}
-        y2={baseY}
-        stroke="var(--dn-accent)"
-        strokeDasharray="4 3"
-        opacity="0.5"
-      />
-
-      {shadePath && (
-        <path d={shadePath} fill="url(#shadeGrad)" />
-      )}
-
-      <path
-        d={linePath}
-        fill="none"
-        stroke="var(--dn-curve)"
-        strokeWidth="2.4"
-      />
-
-      {ticks.map((x, i) => (
-        <g key={i}>
-          <line
-            x1={toSvgX(x)}
-            y1={baseY}
-            x2={toSvgX(x)}
-            y2={baseY + 5}
-            stroke="var(--dn-line)"
-          />
-
-          <text
-            x={toSvgX(x)}
-            y={baseY + 18}
-            textAnchor="middle"
-            fontSize="9"
-            fill="var(--dn-muted)"
-            fontFamily="'DM Mono', monospace"
-          >
-            {Math.abs(x) < 1
-              ? x.toFixed(1)
-              : Number.isInteger(x)
-              ? x
-              : x.toFixed(2)}
-          </text>
-        </g>
+      {/* Cuadrícula horizontal */}
+      {[0.25, 0.5, 0.75, 1].map((f, i) => (
+        <line
+          key={i}
+          x1={PAD.left} y1={PAD.top + plotH * (1 - f)}
+          x2={PAD.left + plotW} y2={PAD.top + plotH * (1 - f)}
+          stroke="#e5e7eb" strokeWidth="0.8"
+        />
       ))}
 
+      {/* Cuadrícula vertical en ticks regulares */}
+      {ticks.filter(x => !isCutoff(x)).map((x, i) => (
+        <line
+          key={i}
+          x1={toSvgX(x)} y1={PAD.top}
+          x2={toSvgX(x)} y2={baseY}
+          stroke="#e5e7eb" strokeWidth="0.8"
+        />
+      ))}
+
+      {/* Eje X */}
+      <line
+        x1={PAD.left} y1={baseY}
+        x2={PAD.left + plotW} y2={baseY}
+        stroke="#9ca3af" strokeWidth="1"
+      />
+
+      {/* Línea μ */}
+      <line
+        x1={toSvgX(mu)} y1={PAD.top}
+        x2={toSvgX(mu)} y2={baseY}
+        stroke="#16a34a" strokeDasharray="4 3" strokeWidth="1" opacity="0.5"
+      />
+
+      {/* Área sombreada */}
+      {shadePath && <path d={shadePath} fill="url(#shadeGrad)" />}
+
+      {/* Líneas de corte en a y b */}
+      {isFinite(a) && (mode === 'geq' || mode === 'between') && (
+        <line
+          x1={toSvgX(a)} y1={PAD.top}
+          x2={toSvgX(a)} y2={baseY}
+          stroke="#15803d" strokeWidth="1.5" strokeDasharray="4 3"
+        />
+      )}
+      {isFinite(b) && (mode === 'leq' || mode === 'between') && (
+        <line
+          x1={toSvgX(b)} y1={PAD.top}
+          x2={toSvgX(b)} y2={baseY}
+          stroke="#15803d" strokeWidth="1.5" strokeDasharray="4 3"
+        />
+      )}
+
+      {/* Curva */}
+      <path d={linePath} fill="none" stroke="#16a34a" strokeWidth="2.2" strokeLinejoin="round" />
+
+      {/* Etiquetas eje X */}
+      {ticks.map((x, i) => {
+        const cx = toSvgX(x)
+        const isSpecial = isCutoff(x)
+        return (
+          <g key={i}>
+            <line
+              x1={cx} y1={baseY}
+              x2={cx} y2={baseY + 5}
+              stroke={isSpecial ? '#15803d' : '#9ca3af'}
+              strokeWidth={isSpecial ? 1.5 : 1}
+            />
+            <text
+              x={cx} y={baseY + 16}
+              textAnchor="middle"
+              fontSize={isSpecial ? '10' : '9'}
+              fontWeight={isSpecial ? '600' : '400'}
+              fill={isSpecial ? '#15803d' : '#6b7280'}
+              fontFamily="'Inter', sans-serif"
+            >
+              {fmtTick(x)}
+            </text>
+          </g>
+        )
+      })}
+
+      {/* Etiqueta μ */}
       <text
-        x={toSvgX(mu)}
-        y={PAD.top - 5}
+        x={toSvgX(mu)} y={PAD.top - 5}
         textAnchor="middle"
-        fill="var(--dn-accent)"
+        fill="#16a34a"
         fontSize="10"
+        fontFamily="'Inter', sans-serif"
       >
         μ
       </text>

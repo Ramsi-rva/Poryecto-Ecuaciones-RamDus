@@ -293,15 +293,14 @@
   height: auto;
   display: block;
   border-radius: 8px;
-  background: #1a1a2e;
+  background: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.08);
   margin-bottom: 2rem;
 
-  /* Variables CSS usadas por el SVG inline */
-  --dn-accent: #22c55e;
-  --dn-curve:  #22c55e;
-  --dn-line:   rgba(255, 255, 255, 0.12);
-  --dn-muted:  #6b7280;
+  --dn-accent: #16a34a;
+  --dn-curve:  #16a34a;
+  --dn-line:   rgba(0, 0, 0, 0.15);
+  --dn-muted:  #374151;
 }
 
 /* ─── Responsive ──────────────────────────────────────────── */

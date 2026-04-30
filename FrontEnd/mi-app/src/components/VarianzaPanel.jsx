@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import { statsApi } from '../utils/api'
 import { useApi } from '../hooks/useApi'
-
+import './VarianzaPanel.css'
 export default function VarianzaPanel() {
   const [rawInput, setRawInput] = useState('4, 8, 15, 16, 23, 42')
   const [type, setType] = useState('population')

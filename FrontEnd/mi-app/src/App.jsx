@@ -1,22 +1,19 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useEffect, useState } from 'react';
+import { getSaludo } from './services/api';
 import './App.css'
 
 function App() {
+  const [mensaje, setMensaje] = useState('');
+
+  useEffect(() => {
+    getSaludo().then(data => setMensaje(data.mensaje));
+  }, []);
+
   return (
-    <div className="App">
-      <header>
-        <h1>Probabilidad y Estadística</h1>
-        <p>Calculadora de Probabilidades y Distribución de Probabilidad</p>
-      </header>
-      
-      <main>
-        <p>Proyecto iniciado</p>
-      </main>
+    <div>
+      <h1>{mensaje}</h1>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

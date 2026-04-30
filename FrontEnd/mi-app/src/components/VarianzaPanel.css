@@ -1,10 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 .panel-content {
   color: #ffffff;
-  font-family: inherit;
+  font-family: 'Inter', sans-serif;
 }
 
+/* ───────────────────────────── */
+/* Títulos */
+/* ───────────────────────────── */
+
 .panel-title {
-  font-family: var(--font-display);
+  font-family: 'Inter', sans-serif;
   font-weight: 700;
 }
 
@@ -14,6 +20,10 @@
   margin: 0 0 1.5rem;
   line-height: 1.6;
 }
+
+/* ───────────────────────────── */
+/* Formularios */
+/* ───────────────────────────── */
 
 .form-group {
   display: flex;
@@ -40,6 +50,7 @@
   transition: border-color 0.2s ease;
   width: 100%;
   box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
 }
 
 .form-input:focus,
@@ -55,6 +66,10 @@
   background: #1a1a2e;
 }
 
+/* ───────────────────────────── */
+/* Filas */
+/* ───────────────────────────── */
+
 .form-row {
   display: flex;
   gap: 1rem;
@@ -67,6 +82,10 @@
   margin-bottom: 0;
 }
 
+/* ───────────────────────────── */
+/* Botones */
+/* ───────────────────────────── */
+
 .btn {
   border-radius: 6px;
   padding: 0.75rem 1.75rem;
@@ -76,6 +95,7 @@
   transition: all 0.2s ease;
   border: none;
   white-space: nowrap;
+  font-family: 'Inter', sans-serif;
 }
 
 .btn-primary {
@@ -108,6 +128,10 @@
   font-size: 0.85rem;
 }
 
+/* ───────────────────────────── */
+/* Alerts */
+/* ───────────────────────────── */
+
 .alert {
   padding: 0.75rem 1rem;
   border-radius: 8px;
@@ -120,6 +144,10 @@
   border: 1px solid rgba(248, 113, 113, 0.3);
   color: #f87171;
 }
+
+/* ───────────────────────────── */
+/* Cards de métricas */
+/* ───────────────────────────── */
 
 .metrics-grid {
   display: grid;
@@ -155,6 +183,10 @@
   color: #9d4edd;
 }
 
+/* ───────────────────────────── */
+/* Pasos */
+/* ───────────────────────────── */
+
 .steps-box {
   background: #1a1a2e;
   border: 1px solid rgba(255, 255, 255, 0.07);
@@ -172,15 +204,91 @@
   margin: 0 0 0.75rem;
 }
 
-.step {
-  font-size: 0.9rem;
+.step-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #0f0f1a;
+  border: 1px solid rgba(157, 78, 221, 0.2);
+  border-left: 3px solid #7c3aed;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.step-card:last-child {
+  margin-bottom: 0;
+}
+
+.step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: rgba(124, 58, 237, 0.2);
+  border: 1px solid rgba(157, 78, 221, 0.5);
+  color: #9d4edd;
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.step-inline {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.step-label {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+}
+
+.step-expr {
+  font-size: 0.95rem;
   color: #d1d5db;
-  line-height: 1.7;
-  margin: 0 0 0.25rem;
   font-family: 'Courier New', monospace;
 }
 
 .highlight {
   color: #9d4edd;
   font-weight: 700;
+}
+
+/* ───────────────────────────── */
+/* Responsive */
+/* ───────────────────────────── */
+
+@media (max-width: 768px) {
+  .form-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .step-inline {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+  }
+}
+
+.action-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
 }

@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { statsApi } from '../utils/api'
 import { useApi } from '../hooks/useApi'
 import './VarianzaPanel.css'
+
 export default function VarianzaPanel() {
   const [rawInput, setRawInput] = useState('4, 8, 15, 16, 23, 42')
   const [type, setType] = useState('population')
@@ -39,19 +40,19 @@ export default function VarianzaPanel() {
         />
       </div>
 
-      <div className="form-row">
-        <div className="form-group">
-          <label className="form-label">Tipo de varianza</label>
-          <select
-            className="form-select"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-          >
-            <option value="population">Poblacional (σ²) — dividir entre N</option>
-            <option value="sample">Muestral (s²) — dividir entre N−1</option>
-          </select>
-        </div>
+      <div className="form-group">
+        <label className="form-label">Tipo de varianza</label>
+        <select
+          className="form-select"
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+        >
+          <option value="population">Poblacional (σ²) — dividir entre N</option>
+          <option value="sample">Muestral (s²) — dividir entre N−1</option>
+        </select>
+      </div>
 
+      <div className="action-row">
         <button
           className="btn btn-primary"
           onClick={handleCalculate}
@@ -67,35 +68,74 @@ export default function VarianzaPanel() {
         <>
           <div className="metrics-grid">
             <MetricCard label="Media (x̄)" value={data.mean} />
-            <MetricCard label={data.type === 'population' ? 'Varianza (σ²)' : 'Varianza (s²)'} value={data.variance} />
+            <MetricCard
+              label={data.type === 'population' ? 'Varianza (σ²)' : 'Varianza (s²)'}
+              value={data.variance}
+            />
             <MetricCard label="Desv. estándar" value={data.standardDeviation} />
             <MetricCard label="N (datos)" value={data.n} decimals={0} />
           </div>
 
           <div className="steps-box">
             <p className="steps-title">Procedimiento</p>
-            <p className="step">
-              1. n = {data.n} datos
-            </p>
-            <p className="step">
-              2. Media: x̄ = <span className="highlight">{data.mean}</span>
-            </p>
-            <p className="step">
-              3. Desviaciones cuadradas Σ(xᵢ − x̄)²:&nbsp;
-              {data.deviations.join(', ')}
-            </p>
-            <p className="step">
-              4. Suma = {data.deviations.reduce((a, b) => +(a + b).toFixed(6), 0)}
-            </p>
-            <p className="step">
-              5. {data.type === 'population' ? 'σ²' : 's²'} = Suma /{' '}
-              {data.type === 'population' ? data.n : data.n - 1} ={' '}
-              <span className="highlight">{data.variance}</span>
-            </p>
-            <p className="step">
-              6. Desv. estándar = √varianza ={' '}
-              <span className="highlight">{data.standardDeviation}</span>
-            </p>
+
+            <div className="step-card">
+              <span className="step-number">1</span>
+              <span className="step-inline">
+                <span className="step-label">Total de datos</span>
+                <span className="step-expr">n = <span className="highlight">{data.n}</span></span>
+              </span>
+            </div>
+
+            <div className="step-card">
+              <span className="step-number">2</span>
+              <span className="step-inline">
+                <span className="step-label">Media aritmética</span>
+                <span className="step-expr">x̄ = <span className="highlight">{data.mean}</span></span>
+              </span>
+            </div>
+
+            <div className="step-card">
+              <span className="step-number">3</span>
+              <span className="step-inline">
+                <span className="step-label">Desviaciones cuadradas — Σ(xᵢ − x̄)²</span>
+                <span className="step-expr">{data.deviations.join(', ')}</span>
+              </span>
+            </div>
+
+            <div className="step-card">
+              <span className="step-number">4</span>
+              <span className="step-inline">
+                <span className="step-label">Suma de desviaciones cuadradas</span>
+                <span className="step-expr">
+                  Σ = <span className="highlight">
+                    {data.deviations.reduce((a, b) => +(a + b).toFixed(6), 0)}
+                  </span>
+                </span>
+              </span>
+            </div>
+
+            <div className="step-card">
+              <span className="step-number">5</span>
+              <span className="step-inline">
+                <span className="step-label">Varianza</span>
+                <span className="step-expr">
+                  {data.type === 'population' ? 'σ²' : 's²'} = Σ ÷{' '}
+                  {data.type === 'population' ? data.n : data.n - 1} ={' '}
+                  <span className="highlight">{data.variance}</span>
+                </span>
+              </span>
+            </div>
+
+            <div className="step-card">
+              <span className="step-number">6</span>
+              <span className="step-inline">
+                <span className="step-label">Desviación estándar</span>
+                <span className="step-expr">
+                  √varianza = <span className="highlight">{data.standardDeviation}</span>
+                </span>
+              </span>
+            </div>
           </div>
         </>
       )}

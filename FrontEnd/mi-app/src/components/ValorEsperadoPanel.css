@@ -4,10 +4,8 @@
 }
 
 .panel-title {
-  font-size: 1.3rem;
+  font-family: var(--font-display);
   font-weight: 700;
-  color: #ffffff;
-  margin: 0 0 0.5rem;
 }
 
 .panel-subtitle {

@@ -1,3 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@700;900&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --font-display: 'Lato', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+body {
+  font-family: var(--font-body);
+}
+
 .header-with-background {
   position: relative;
   width: 100%;
@@ -33,13 +44,8 @@
 }
 
 .main-title-minimal {
-  text-align: center;
-  color: #ffffff;
-  font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  max-width: 55%;          
-  line-height: 1.4;
+  font-family: var(--font-display);
+  font-weight: 900;
 }
 
 .decorative-line {

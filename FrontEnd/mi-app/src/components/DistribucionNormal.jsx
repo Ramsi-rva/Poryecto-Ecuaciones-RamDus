@@ -2,7 +2,6 @@ import { useState } from 'react'
 import './DistribucionNormal.css'
 
 function DistribucionNormal({ onBack }) {
-  const [tipoDistribucion, setTipoDistribucion] = useState('normal')
   const [media, setMedia] = useState('')
   const [desviacion, setDesviacion] = useState('')
   const [valor, setValor] = useState('')
@@ -63,18 +62,6 @@ function DistribucionNormal({ onBack }) {
       </div>
 
       <div className="dn-body">
-        <div className="dn-field">
-          <label className="dn-label">Tipo de Distribución</label>
-          <select
-            className="dn-select"
-            value={tipoDistribucion}
-            onChange={e => setTipoDistribucion(e.target.value)}
-          >
-            <option value="normal">Distribución Normal</option>
-            <option value="estandar">Distribución Normal Estándar</option>
-          </select>
-        </div>
-
         <div className="dn-inputs-row">
           <div className="dn-field">
             <label className="dn-label">Media (μ)</label>

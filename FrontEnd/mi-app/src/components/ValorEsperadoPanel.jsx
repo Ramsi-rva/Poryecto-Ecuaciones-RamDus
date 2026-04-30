@@ -5,6 +5,7 @@
 import { useState } from 'react'
 import { statsApi } from '../utils/api'
 import { useApi } from '../hooks/useApi'
+import './ValorEsperadoPanel.css'
 
 const INITIAL_ROWS = [
   { value: '1', prob: '0.10' },

@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react';
-import { getSaludo } from './utils/api';
 import './App.css'
+import VarianzaPanel from './components/VarianzaPanel'
+import ValorEsperadoPanel from './components/ValorEsperadoPanel'
+import NormalPanel from './components/NormalPanel'
 
 function App() {
-  const [mensaje, setMensaje] = useState('');
-
-  useEffect(() => {
-    getSaludo().then(data => setMensaje(data.mensaje));
-  }, []);
-
   return (
     <div>
-      <h1>{mensaje}</h1>
+      <h1>App de Estadística</h1>
+
+      <VarianzaPanel />
+      <ValorEsperadoPanel />
+      <NormalPanel />
     </div>
-  );
+  )
 }
 
-export default App;
+export default App

@@ -3,6 +3,7 @@ import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import DistribucionNormal from './components/DistribucionNormal'
+import ColeccionProblemas from './components/ColeccionProblemas'
 import './App.css'
 
 function App() {
@@ -12,6 +13,9 @@ function App() {
     return <DistribucionNormal onBack={() => setVista('menu')} />
   }
 
+  if (vista === 'coleccion-problemas') {
+  return <ColeccionProblemas onBack={() => setVista('menu')} />
+  }
   return (
     <div className="App">
       <div className="header-with-background">
@@ -69,7 +73,7 @@ function App() {
             <p>Desarrolle la forma gráfica de la distribución normal estándar.</p>
           </div>
 
-          <div className="calculator-card">
+          <div className="calculator-card" onClick={() => setVista('coleccion-problemas')}>
             <div className="card-icon orange">
               <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" />
@@ -78,8 +82,9 @@ function App() {
             </div>
             <h3>Colección de Problemas</h3>
             <p>Acceda a una biblioteca de problemas resueltos y ejercicios prácticos.</p>
+            
           </div>
-
+          
         </div>
       </main>
 

@@ -53,20 +53,12 @@
   color: #4b5563;
 }
 
-.form-select option {
-  background: #1a1a2e;
-}
-
 .form-row {
   display: flex;
   gap: 1rem;
-  align-items: flex-end;
+  align-items: center;
   margin-bottom: 1.5rem;
-}
-
-.form-row .form-group {
-  flex: 1;
-  margin-bottom: 0;
+  flex-wrap: wrap;
 }
 
 .btn {
@@ -128,12 +120,11 @@
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 10px;
   overflow: hidden;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .dist-table-header {
   display: grid;
-  grid-template-columns: 1fr 1fr 40px;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   background: rgba(96, 165, 250, 0.08);
@@ -147,9 +138,8 @@
 
 .dist-table-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 40px;
   gap: 0.75rem;
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1rem;
   align-items: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
@@ -158,32 +148,9 @@
   border-bottom: none;
 }
 
-.dist-table-row .form-input {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.9rem;
-}
-
-.prob-sum-indicator {
-  font-size: 0.88rem;
-  color: #9ca3af;
-  margin-bottom: 1.25rem;
-  display: flex;
-  gap: 0.4rem;
-}
-
-.prob-sum-indicator .valid {
-  color: #60a5fa;
-  font-weight: 600;
-}
-
-.prob-sum-indicator .invalid {
-  color: #f87171;
-  font-weight: 600;
-}
-
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -210,7 +177,7 @@
 }
 
 .metric-value {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #60a5fa;
 }
@@ -229,22 +196,29 @@
   color: #60a5fa;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin: 0 0 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
 .step {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   color: #d1d5db;
   line-height: 1.7;
-  margin: 0 0 0.25rem;
+  margin-bottom: 0.4rem;
   font-family: 'Courier New', monospace;
-}
-
-.step.warning {
-  color: #fbbf24;
 }
 
 .highlight {
   color: #60a5fa;
   font-weight: 700;
+}
+
+.formula-box {
+  margin-bottom: 1.5rem;
+}
+
+.formula-preview {
+  margin-top: 0.35rem;
+  color: #60a5fa;
+  font-size: 0.88rem;
+  font-family: 'Courier New', monospace;
 }

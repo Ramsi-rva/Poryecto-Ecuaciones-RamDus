@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Lato:wght@700;900&family=Inter:wght@400;500;600&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 :root {
@@ -13,7 +14,7 @@ body {
 .header-with-background {
   position: relative;
   width: 100%;
-  height: 640px;
+  height: clamp(240px, 38vw, 420px);
   overflow: hidden;
 }
 
@@ -24,6 +25,7 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 40%;
   z-index: 2;
 }
 
@@ -93,7 +95,7 @@ body {
 }
 
 .calculator-card:hover {
-  transform: translateY(-10px) scale(1.02);
+  transform: translateY(-4px);
   box-shadow: 
     0 20px 40px rgba(138, 43, 226, 0.3),
     0 0 30px rgba(138, 43, 226, 0.2),
@@ -117,7 +119,7 @@ body {
 }
 
 .calculator-card:hover .card-icon {
-  transform: scale(1.1) rotate(5deg);
+  transform: scale(1.05);
 }
 
 .card-icon.purple {
@@ -136,6 +138,12 @@ body {
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(52, 211, 153, 0.3));
   color: #34d399;
   box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.card-icon.cyan {
+  background: linear-gradient(135deg, rgba(8, 145, 178, 0.2), rgba(34, 211, 238, 0.3));
+  color: #22d3ee;
+  box-shadow: 0 0 20px rgba(8, 145, 178, 0.3);
 }
 
 .card-icon.orange {
@@ -183,3 +191,37 @@ body {
     height: 220px;
   }
 }
+.calculator-card:focus-visible {
+  outline: 2px solid #c4b5fd;
+  outline-offset: 3px;
+  border-color: rgba(138, 43, 226, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calculator-card,
+  .calculator-card *,
+  .calculator-card::before {
+    transition: none !important;
+  }
+  .calculator-card:hover,
+  .calculator-card:hover .card-icon {
+    transform: none;
+  }
+}
+
+/* ─── Identidad: serif del póster en títulos y cifras ─────── */
+:root {
+  --font-serif: 'Lora', Georgia, 'Times New Roman', serif;
+}
+
+:root .dn-title,
+:root .panel-title,
+:root .cp-title,
+:root .dn-resultados-title,
+:root .calculator-card h3,
+:root .dn-resultado-valor,
+:root .metric-value {
+  font-family: var(--font-serif);
+}
+
+:root .dn-title { letter-spacing: -0.01em; }

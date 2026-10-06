@@ -96,14 +96,14 @@
 
 .cp-item-enunciado {
   font-size: 0.78rem;
-  color: #6b7280;
+  color: #9ca3af;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .cp-item-arrow {
-  color: #4b5563;
+  color: #8b93a3;
   font-size: 1.4rem;
   flex-shrink: 0;
   transition: color 0.2s ease;
@@ -214,7 +214,7 @@
   height: 22px;
   border-radius: 50%;
   background: rgba(138, 43, 226, 0.2);
-  color: #9d4edd;
+  color: #c4b5fd;
   font-size: 0.72rem;
   font-weight: 700;
   display: flex;

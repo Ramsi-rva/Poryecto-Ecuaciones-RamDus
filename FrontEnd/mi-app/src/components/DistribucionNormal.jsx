@@ -1,509 +1,363 @@
 // ─────────────────────────────────────────────────────────────
-// DistribucionNormal.jsx  —  Con gráfica SVG, 3 modos y soporte ±∞
+// DistribucionNormal.jsx — Normal con 5 modos:
+//   P(X ≤ x), P(X ≥ x), P(a ≤ X ≤ b), dos colas y la INVERSA
+//   (encontrar z / x a partir de una probabilidad o de α)
 // ─────────────────────────────────────────────────────────────
 
 import { useState, useMemo } from 'react'
 import './DistribucionNormal.css'
+import DistChart from './DistChart'
+import { normalCdf, normalInv, normalPdf, parseProb } from '../utils/distributions'
 
-// ── Utilidades matemáticas ────────────────────────────────────
-function erf(x) {
-const a1 =  0.254829592, a2 = -0.284496736, a3 =  1.421413741
-const a4 = -1.453152027, a5 =  1.061405429, p  =  0.3275911
-const sign = x < 0 ? -1 : 1
-x = Math.abs(x)
-const t = 1.0 / (1.0 + p * x)
-const y = 1.0 - (((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x)
-return sign * y
+const fmt = (v, d = 4) =>
+  v === Infinity ? '+∞' : v === -Infinity ? '−∞' : Number(v).toFixed(d)
+
+const MODES = {
+  leq: 'P(X ≤ x)',
+  geq: 'P(X ≥ x)',
+  between: 'P(a ≤ X ≤ b)',
+  two: 'Dos colas',
+  inv: 'Inversa (z desde P / α)',
 }
 
-function phi(z) {
-return 0.5 * (1 + erf(z / Math.sqrt(2)))
+const INV_KINDS = {
+  left: 'Área a la izquierda  P(X ≤ x) = p',
+  right: 'Área a la derecha  P(X ≥ x) = p',
+  two: 'α en dos colas  (α/2 en cada cola)',
+  center: 'Área central / nivel de confianza (1 − α)',
 }
 
-function pdf(x, mu, sigma) {
-const z = (x - mu) / sigma
-return (1 / (sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * z * z)
-}
+export default function DistribucionNormal({ onBack }) {
+  const [media, setMedia] = useState('0')
+  const [desviacion, setDesviacion] = useState('1')
+  const [mode, setMode] = useState('leq')
 
-// ── Componente de gráfica SVG ─────────────────────────────────
-function NormalCurveChart({ mu, sigma, mode, a, b }) {
-  const W = 520
-  const H = 240
+  const [xA, setXA] = useState('')
+  const [xB, setXB] = useState('')
+  const [aIsNegInf, setAIsNegInf] = useState(false)
+  const [bIsPosInf, setBIsPosInf] = useState(false)
 
-  const PAD = {
-    top: 20,
-    right: 25,
-    bottom: 48,   // más espacio para etiquetas
-    left: 35
+  const [invKind, setInvKind] = useState('two')
+  const [probIn, setProbIn] = useState('')
+
+  const [tocado, setTocado] = useState(false)
+
+  const mu = parseFloat(media)
+  const sigma = parseFloat(desviacion)
+  const numA = aIsNegInf ? -Infinity : parseFloat(xA)
+  const numB = bIsPosInf ? Infinity : parseFloat(xB)
+  const paramsOk = !isNaN(mu) && !isNaN(sigma) && sigma > 0
+
+  // ── Inversa: z, x, α a partir de p ──────────────────────────
+  function solveInverse() {
+    const p = parseProb(probIn)
+    if (isNaN(p)) return { error: 'Ingresa una probabilidad entre 0 y 1 (o un porcentaje entre 0 y 100).' }
+    if (invKind === 'left') {
+      const z = normalInv(p)
+      return { kind: 'left', p, z, x: mu + z * sigma, alpha: p }
+    }
+    if (invKind === 'right') {
+      const z = normalInv(1 - p)
+      return { kind: 'right', p, z, x: mu + z * sigma, alpha: p }
+    }
+    const alpha = invKind === 'two' ? p : 1 - p
+    const zc = normalInv(1 - alpha / 2)
+    return { kind: invKind, p, alpha, zc, xLo: mu - zc * sigma, xHi: mu + zc * sigma }
   }
 
-  const plotW = W - PAD.left - PAD.right
-  const plotH = H - PAD.top - PAD.bottom
-
-  const chartData = useMemo(() => {
-    let xMin = mu - 4 * sigma
-    let xMax = mu + 4 * sigma
-
-    const validA = isFinite(a)
-    const validB = isFinite(b)
-
-    if (validA) {
-      xMin = Math.min(xMin, a - sigma * 1.5)
-      xMax = Math.max(xMax, a + sigma * 1.5)
+  // ── Geometría de la gráfica (en vivo) ───────────────────────
+  const geometry = useMemo(() => {
+    if (!paramsOk) return null
+    const none = { regions: [], cuts: [] }
+    if (mode === 'leq') {
+      return isNaN(numA) ? none : { regions: [[-Infinity, numA]], cuts: [numA] }
     }
-    if (validB) {
-      xMin = Math.min(xMin, b - sigma * 1.5)
-      xMax = Math.max(xMax, b + sigma * 1.5)
+    if (mode === 'geq') {
+      return isNaN(numA) ? none : { regions: [[numA, Infinity]], cuts: [numA] }
     }
-
-    const range = xMax - xMin
-    const pts = []
-    const STEPS = 500
-    for (let i = 0; i <= STEPS; i++) {
-      const x = xMin + (i / STEPS) * range
-      pts.push({ x, y: pdf(x, mu, sigma) })
-    }
-    return { pts, xMin, xMax }
-  }, [mu, sigma, a, b])
-
-  const { pts, xMin, xMax } = chartData
-  const yMax = Math.max(...pts.map(p => p.y)) * 1.15
-
-  const toSvgX = (x) => PAD.left + ((x - xMin) / (xMax - xMin)) * plotW
-  const toSvgY = (y) => PAD.top + plotH - (y / yMax) * plotH
-
-  const linePath = pts
-    .map((p, i) => `${i === 0 ? 'M' : 'L'}${toSvgX(p.x).toFixed(2)},${toSvgY(p.y).toFixed(2)}`)
-    .join(' ')
-
-  const baseY = toSvgY(0)
-
-  const shadePath = useMemo(() => {
-    let shadeStart = xMin
-    let shadeEnd = xMax
-
-    if (mode === 'leq') shadeEnd = isFinite(b) ? b : xMax
-    if (mode === 'geq') shadeStart = isFinite(a) ? a : xMin
     if (mode === 'between') {
-      shadeStart = isFinite(a) ? a : xMin
-      shadeEnd = isFinite(b) ? b : xMax
+      const lo = aIsNegInf ? -Infinity : numA
+      const hi = bIsPosInf ? Infinity : numB
+      if (isNaN(lo) || isNaN(hi) || lo >= hi) return none
+      return { regions: [[lo, hi]], cuts: [lo, hi] }
+    }
+    if (mode === 'two') {
+      if (isNaN(numA)) return none
+      const d = Math.abs(numA - mu)
+      return { regions: [[-Infinity, mu - d], [mu + d, Infinity]], cuts: [mu - d, mu + d] }
+    }
+    // inv
+    const r = solveInverse()
+    if (r.error) return none
+    if (r.kind === 'left') return { regions: [[-Infinity, r.x]], cuts: [r.x] }
+    if (r.kind === 'right') return { regions: [[r.x, Infinity]], cuts: [r.x] }
+    if (r.kind === 'two') return { regions: [[-Infinity, r.xLo], [r.xHi, Infinity]], cuts: [r.xLo, r.xHi] }
+    return { regions: [[r.xLo, r.xHi]], cuts: [r.xLo, r.xHi] }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramsOk, mode, mu, sigma, numA, numB, aIsNegInf, bIsPosInf, invKind, probIn])
+
+  const pdfFn = useMemo(() => (x) => normalPdf(x, mu, sigma), [mu, sigma])
+  const domain = useMemo(() => [mu - 4 * sigma, mu + 4 * sigma], [mu, sigma])
+
+  // ── Calcular ────────────────────────────────────────────────
+  function computeResult(setResultado) {
+    if (!paramsOk) {
+      setResultado({ error: 'Ingresa valores válidos de μ y σ (σ > 0).' })
+      return
     }
 
-    if (shadeStart >= shadeEnd) return ''
-
-    const shadePts = pts.filter(p => p.x >= shadeStart && p.x <= shadeEnd)
-    if (shadePts.length < 2) return ''
-
-    const start = shadePts[0]
-    const end = shadePts[shadePts.length - 1]
-
-    const path = shadePts
-      .map((p, i) => `${i === 0 ? 'M' : 'L'}${toSvgX(p.x).toFixed(2)},${toSvgY(p.y).toFixed(2)}`)
-      .join(' ')
-
-    return `${path} L${toSvgX(end.x).toFixed(2)} ${baseY} L${toSvgX(start.x).toFixed(2)} ${baseY} Z`
-  }, [pts, mode, a, b, xMin, xMax])
-
-  // Ticks: siempre incluye los valores de a y b si son finitos
-  const ticks = useMemo(() => {
-    const range = xMax - xMin
-    let step
-    if (range <= 1) step = 0.1
-    else if (range <= 5) step = 0.5
-    else if (range <= 10) step = 1
-    else if (range <= 50) step = 5
-    else step = 10
-
-    const first = Math.ceil(xMin / step) * step
-    const arr = []
-    for (let x = first; x <= xMax + 0.0001; x += step) {
-      arr.push(Number(x.toFixed(4)))
+    if (mode === 'inv') {
+      const r = solveInverse()
+      if (r.error) { setResultado({ error: r.error }); return }
+      if (r.kind === 'left' || r.kind === 'right') {
+        const sym = r.kind === 'left' ? '≤' : '≥'
+        setResultado({
+          label: `P(X ${sym} x) = ${r.p}`,
+          cards: [
+            { label: 'Valor Z', value: fmt(r.z), accent: true },
+            { label: 'Valor x = μ + z·σ', value: fmt(r.x) },
+            { label: 'Probabilidad (α de esa cola)', value: fmt(r.alpha, 6) },
+          ],
+        })
+      } else {
+        setResultado({
+          label: `α = ${fmt(r.alpha, 6)}  ·  confianza = ${fmt((1 - r.alpha) * 100, 2)} %`,
+          cards: [
+            { label: 'Z crítico  (±z α/2)', value: `±${fmt(r.zc)}`, accent: true },
+            { label: 'Límite inferior x', value: fmt(r.xLo) },
+            { label: 'Límite superior x', value: fmt(r.xHi) },
+            { label: 'α total (dos colas)', value: fmt(r.alpha, 6) },
+            { label: 'α/2 (cada cola)', value: fmt(r.alpha / 2, 6) },
+            { label: 'Nivel de confianza (1 − α)', value: `${fmt((1 - r.alpha) * 100, 2)} %` },
+          ],
+        })
+      }
+      return
     }
 
-    // Añadir a y b si son finitos y no están ya incluidos
-    const extra = []
-    if (isFinite(a) && !arr.some(t => Math.abs(t - a) < step * 0.1)) extra.push(a)
-    if (isFinite(b) && !arr.some(t => Math.abs(t - b) < step * 0.1)) extra.push(b)
+    if (mode === 'leq' || mode === 'geq' || mode === 'two') {
+      if (isNaN(numA)) { setResultado({ error: 'Ingresa el valor de x.' }); return }
+      const z = (numA - mu) / sigma
+      if (mode === 'leq') {
+        const p = normalCdf(z)
+        setResultado({
+          label: `P(X ≤ ${numA})`,
+          cards: [
+            { label: 'Probabilidad', value: `${fmt(p * 100)}%`, accent: true },
+            { label: 'Valor Z', value: fmt(z) },
+            { label: 'Cola contraria  P(X > x)', value: `${fmt((1 - p) * 100)}%` },
+            { label: 'Densidad f(μ)', value: fmt(normalPdf(mu, mu, sigma), 6) },
+          ],
+        })
+      } else if (mode === 'geq') {
+        const p = 1 - normalCdf(z)
+        setResultado({
+          label: `P(X ≥ ${numA})`,
+          cards: [
+            { label: 'Probabilidad', value: `${fmt(p * 100)}%`, accent: true },
+            { label: 'Valor Z', value: fmt(z) },
+            { label: 'Cola contraria  P(X < x)', value: `${fmt((1 - p) * 100)}%` },
+            { label: 'Densidad f(μ)', value: fmt(normalPdf(mu, mu, sigma), 6) },
+          ],
+        })
+      } else {
+        const az = Math.abs(z)
+        const alpha = 2 * normalCdf(-az)
+        setResultado({
+          label: `P(|X − μ| ≥ ${fmt(Math.abs(numA - mu), 4)}) — dos colas`,
+          cards: [
+            { label: 'α (dos colas) = valor p', value: fmt(alpha, 6), accent: true },
+            { label: '|Z|', value: fmt(az) },
+            { label: 'α/2 (cada cola)', value: fmt(alpha / 2, 6) },
+            { label: 'Límites simétricos', value: `${fmt(mu - az * sigma, 3)}  ·  ${fmt(mu + az * sigma, 3)}` },
+            { label: 'Área central (1 − α)', value: `${fmt((1 - alpha) * 100)}%` },
+          ],
+        })
+      }
+      return
+    }
 
-    return [...arr, ...extra].sort((x, y) => x - y)
-  }, [xMin, xMax, a, b])
-
-  // Formato de etiqueta: sin decimales innecesarios
-  const fmtTick = (x) => {
-    if (Number.isInteger(x)) return String(x)
-    const s = x.toFixed(2)
-    return s.replace(/\.?0+$/, '')
+    // between
+    if (!aIsNegInf && isNaN(numA)) { setResultado({ error: 'Ingresa el valor inferior a.' }); return }
+    if (!bIsPosInf && isNaN(numB)) { setResultado({ error: 'Ingresa el valor superior b.' }); return }
+    if (!aIsNegInf && !bIsPosInf && numA >= numB) { setResultado({ error: 'a debe ser menor que b.' }); return }
+    const z1 = aIsNegInf ? -Infinity : (numA - mu) / sigma
+    const z2 = bIsPosInf ? Infinity : (numB - mu) / sigma
+    const p = normalCdf(z2) - normalCdf(z1)
+    setResultado({
+      label: `P(${aIsNegInf ? '−∞' : numA} ≤ X ≤ ${bIsPosInf ? '+∞' : numB})`,
+      cards: [
+        { label: 'Probabilidad', value: `${fmt(p * 100)}%`, accent: true },
+        { label: 'Z₁ (a)', value: fmt(z1) },
+        { label: 'Z₂ (b)', value: fmt(z2) },
+        { label: 'Densidad f(μ)', value: fmt(normalPdf(mu, mu, sigma), 6) },
+      ],
+    })
   }
 
-  // Detectar si un tick es valor de corte (a o b)
-  const isCutoff = (x) =>
-    (isFinite(a) && Math.abs(x - a) < 0.0001) ||
-    (isFinite(b) && Math.abs(x - b) < 0.0001)
+  function limpiar() {
+    setMedia('0'); setDesviacion('1')
+    setXA(''); setXB(''); setProbIn('')
+    setAIsNegInf(false); setBIsPosInf(false)
+    setTocado(false)
+  }
+
+  const showA = mode !== 'inv'
+  const showB = mode === 'between'
+
+  // Resultado en vivo: se calcula con cada cambio; los errores solo se
+  // muestran después de pulsar el botón (para no avisar mientras se escribe).
+  let resultado = null
+  computeResult(r => { resultado = r })
+  if (resultado?.error && !tocado) resultado = null
+
+  const probPreview = parseProb(probIn)
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="dn-chart">
-      <defs>
-        <linearGradient id="shadeGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#16a34a" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="#16a34a" stopOpacity="0.08" />
-        </linearGradient>
-      </defs>
-
-      {/* Fondo blanco explícito */}
-      <rect x="0" y="0" width={W} height={H} fill="#ffffff" rx="8" />
-
-      {/* Cuadrícula horizontal */}
-      {[0.25, 0.5, 0.75, 1].map((f, i) => (
-        <line
-          key={i}
-          x1={PAD.left} y1={PAD.top + plotH * (1 - f)}
-          x2={PAD.left + plotW} y2={PAD.top + plotH * (1 - f)}
-          stroke="#e5e7eb" strokeWidth="0.8"
-        />
-      ))}
-
-      {/* Cuadrícula vertical en ticks regulares */}
-      {ticks.filter(x => !isCutoff(x)).map((x, i) => (
-        <line
-          key={i}
-          x1={toSvgX(x)} y1={PAD.top}
-          x2={toSvgX(x)} y2={baseY}
-          stroke="#e5e7eb" strokeWidth="0.8"
-        />
-      ))}
-
-      {/* Eje X */}
-      <line
-        x1={PAD.left} y1={baseY}
-        x2={PAD.left + plotW} y2={baseY}
-        stroke="#9ca3af" strokeWidth="1"
-      />
-
-      {/* Línea μ */}
-      <line
-        x1={toSvgX(mu)} y1={PAD.top}
-        x2={toSvgX(mu)} y2={baseY}
-        stroke="#16a34a" strokeDasharray="4 3" strokeWidth="1" opacity="0.5"
-      />
-
-      {/* Área sombreada */}
-      {shadePath && <path d={shadePath} fill="url(#shadeGrad)" />}
-
-      {/* Líneas de corte en a y b */}
-      {isFinite(a) && (mode === 'geq' || mode === 'between') && (
-        <line
-          x1={toSvgX(a)} y1={PAD.top}
-          x2={toSvgX(a)} y2={baseY}
-          stroke="#15803d" strokeWidth="1.5" strokeDasharray="4 3"
-        />
-      )}
-      {isFinite(b) && (mode === 'leq' || mode === 'between') && (
-        <line
-          x1={toSvgX(b)} y1={PAD.top}
-          x2={toSvgX(b)} y2={baseY}
-          stroke="#15803d" strokeWidth="1.5" strokeDasharray="4 3"
-        />
-      )}
-
-      {/* Curva */}
-      <path d={linePath} fill="none" stroke="#16a34a" strokeWidth="2.2" strokeLinejoin="round" />
-
-      {/* Etiquetas eje X */}
-      {ticks.map((x, i) => {
-        const cx = toSvgX(x)
-        const isSpecial = isCutoff(x)
-        return (
-          <g key={i}>
-            <line
-              x1={cx} y1={baseY}
-              x2={cx} y2={baseY + 5}
-              stroke={isSpecial ? '#15803d' : '#9ca3af'}
-              strokeWidth={isSpecial ? 1.5 : 1}
-            />
-            <text
-              x={cx} y={baseY + 16}
-              textAnchor="middle"
-              fontSize={isSpecial ? '10' : '9'}
-              fontWeight={isSpecial ? '600' : '400'}
-              fill={isSpecial ? '#15803d' : '#6b7280'}
-              fontFamily="'Inter', sans-serif"
-            >
-              {fmtTick(x)}
-            </text>
-          </g>
-        )
-      })}
-
-      {/* Etiqueta μ */}
-      <text
-        x={toSvgX(mu)} y={PAD.top - 5}
-        textAnchor="middle"
-        fill="#16a34a"
-        fontSize="10"
-        fontFamily="'Inter', sans-serif"
-      >
-        μ
-      </text>
-    </svg>
-  )
-}
-
-// ── Componente principal ──────────────────────────────────────
-export default function DistribucionNormal({ onBack }) {
-const [media, setMedia]         = useState('0')
-const [desviacion, setDesviacion] = useState('1')
-const [mode, setMode]           = useState('leq')   // 'leq' | 'geq' | 'between'
-
-// Límite inferior (modo between o leq/geq)
-const [xA, setXA]               = useState('')
-const [xB, setXB]               = useState('')
-
-// Checkboxes ±∞
-const [aIsNegInf, setAIsNegInf] = useState(false)
-const [bIsPosInf, setBIsPosInf] = useState(false)
-
-const [resultado, setResultado] = useState(null)
-
-// Parseo seguro
-const mu    = parseFloat(media)
-const sigma = parseFloat(desviacion)
-const numA  = aIsNegInf ? -Infinity : parseFloat(xA)
-const numB  = bIsPosInf ?  Infinity : parseFloat(xB)
-
-// Valor final de a/b para la gráfica (puede ser null si no aplica)
-const chartA = mode === 'geq' ? numA : mode === 'between' ? numA : -Infinity
-const chartB = mode === 'leq' ? numA : mode === 'between' ? numB :  Infinity
-
-const paramsOk = !isNaN(mu) && !isNaN(sigma) && sigma > 0
-
-function calcular() {
-if (!paramsOk) {
-setResultado({ error: 'Ingresa valores válidos de μ y σ (σ > 0).' })
-return
-}
-
-
-let prob, z1, z2, label
-
-if (mode === 'leq') {
-  if (isNaN(numA) && !aIsNegInf) { setResultado({ error: 'Ingresa el valor de x.' }); return }
-  z1    = aIsNegInf ? -Infinity : (numA - mu) / sigma
-  prob  = aIsNegInf ? 0 : phi(z1)
-  label = aIsNegInf ? 'P(X ≤ −∞) = 0' : `P(X ≤ ${numA})`
-
-} else if (mode === 'geq') {
-  if (isNaN(numA) && !aIsNegInf) { setResultado({ error: 'Ingresa el valor de x.' }); return }
-  z1    = bIsPosInf ?  Infinity : (numA - mu) / sigma
-  prob  = bIsPosInf ? 0 : 1 - phi(z1)
-  label = bIsPosInf ? 'P(X ≥ +∞) = 0' : `P(X ≥ ${numA})`
-
-} else {
-  // between
-  const aInf = aIsNegInf, bInf = bIsPosInf
-  if (!aInf && isNaN(numA)) { setResultado({ error: 'Ingresa el valor inferior a.' }); return }
-  if (!bInf && isNaN(numB)) { setResultado({ error: 'Ingresa el valor superior b.' }); return }
-  if (!aInf && !bInf && numA >= numB) { setResultado({ error: 'a debe ser menor que b.' }); return }
-
-  z1   = aInf ? -Infinity : (numA - mu) / sigma
-  z2   = bInf ?  Infinity : (numB - mu) / sigma
-  const phiA = aInf ? 0 : phi(z1)
-  const phiB = bInf ? 1 : phi(z2)
-  prob  = phiB - phiA
-  const aStr = aInf ? '−∞' : numA
-  const bStr = bInf ? '+∞' : numB
-  label = `P(${aStr} ≤ X ≤ ${bStr})`
-}
-
-const densidadMu = pdf(mu, mu, sigma)
-
-setResultado({
-  label,
-  prob: (prob * 100).toFixed(4),
-  z1: isFinite(z1) ? z1.toFixed(4) : (z1 === -Infinity ? '−∞' : '+∞'),
-  z2: z2 !== undefined ? (isFinite(z2) ? z2.toFixed(4) : (z2 === -Infinity ? '−∞' : '+∞')) : null,
-  densidadMu: densidadMu.toFixed(6),
-})
-
-
-}
-
-function limpiar() {
-setMedia('0'); setDesviacion('1')
-setXA(''); setXB('')
-setAIsNegInf(false); setBIsPosInf(false)
-setResultado(null)
-}
-
-const modeLabels = { leq: 'P(X ≤ x)', geq: 'P(X ≥ x)', between: 'P(a ≤ X ≤ b)' }
-
-return (
-<div className="dn-container">
-<div className="dn-header">
-<div className="dn-title-bar" />
-<h1 className="dn-title">Distribución Normal</h1>
-</div>
-
-
-  <div className="dn-body">
-
-    {/* ── Parámetros μ y σ ── */}
-    <div className="dn-inputs-row">
-      <div className="dn-field">
-        <label className="dn-label">Media (μ)</label>
-        <input className="dn-input" type="number" placeholder="0"
-          value={media} onChange={e => setMedia(e.target.value)} />
-      </div>
-      <div className="dn-field">
-        <label className="dn-label">Desv. Estándar (σ)</label>
-        <input className="dn-input" type="number" placeholder="1"
-          value={desviacion} onChange={e => setDesviacion(e.target.value)} />
-      </div>
-    </div>
-
-    {/* ── Selector de modo ── */}
-    <div className="dn-mode-tabs">
-      {Object.entries(modeLabels).map(([key, lbl]) => (
-        <button
-          key={key}
-          className={`dn-mode-tab${mode === key ? ' active' : ''}`}
-          onClick={() => { setMode(key); setResultado(null) }}
-        >
-          {lbl}
-        </button>
-      ))}
-    </div>
-
-    {/* ── Inputs de límites ── */}
-    <div className="dn-limits">
-      {/* Límite A */}
-      {(mode === 'leq' || mode === 'between') && (
-        <div className="dn-limit-group">
-          <label className="dn-label">
-            {mode === 'leq' ? 'Valor x' : 'Límite inferior a'}
-          </label>
-          <div className="dn-limit-row">
-            <input
-              className="dn-input"
-              type="number"
-              placeholder={aIsNegInf ? '−∞' : '0'}
-              value={xA}
-              disabled={aIsNegInf}
-              onChange={e => setXA(e.target.value)}
-            />
-            {mode === 'between' && (
-              <label className="dn-inf-check">
-                <input type="checkbox" checked={aIsNegInf}
-                  onChange={e => setAIsNegInf(e.target.checked)} />
-                <span>−∞</span>
-              </label>
-            )}
-          </div>
+    <div className="dn-container">
+      {onBack && (
+        <div className="dn-topbar">
+          <button className="dn-btn-volver" onClick={onBack}>← Volver al menú</button>
         </div>
       )}
 
-      {/* Límite B */}
-      {(mode === 'geq' || mode === 'between') && (
-        <div className="dn-limit-group">
-          <label className="dn-label">
-            {mode === 'geq' ? 'Valor x' : 'Límite superior b'}
-          </label>
-          <div className="dn-limit-row">
-            <input
-              className="dn-input"
-              type="number"
-              placeholder={bIsPosInf ? '+∞' : '0'}
-              value={xB}
-              disabled={bIsPosInf}
-              onChange={e => setXB(e.target.value)}
-            />
-            {mode === 'between' && (
-              <label className="dn-inf-check">
-                <input type="checkbox" checked={bIsPosInf}
-                  onChange={e => setBIsPosInf(e.target.checked)} />
-                <span>+∞</span>
-              </label>
-            )}
+      <div className="dn-header">
+        <div className="dn-title-bar" />
+        <h1 className="dn-title">Distribución Normal</h1>
+      </div>
+
+      <div className="dn-body">
+        <div className="dn-inputs-row">
+          <div className="dn-field">
+            <label className="dn-label" htmlFor="dn-f1">Media (μ)</label>
+            <input id="dn-f1" className="dn-input" type="number" step="any" placeholder="0"
+              value={media} onChange={e => setMedia(e.target.value)} />
+          </div>
+          <div className="dn-field">
+            <label className="dn-label" htmlFor="dn-f2">Desv. estándar (σ)</label>
+            <input id="dn-f2" className="dn-input" type="number" step="any" placeholder="1"
+              value={desviacion} onChange={e => setDesviacion(e.target.value)} />
           </div>
         </div>
-      )}
-    </div>
 
-    {/* ── Botones ── */}
-    <div className="dn-buttons">
-      <button className="dn-btn-calcular" onClick={calcular}>
-        Calcular Probabilidad
-      </button>
-      <button className="dn-btn-limpiar" onClick={limpiar}>
-        Limpiar
-      </button>
-    </div>
+        <div className="dn-mode-tabs" role="group" aria-label="Modo de cálculo">
+          {Object.entries(MODES).map(([key, lbl]) => (
+            <button key={key}
+              className={`dn-mode-tab${mode === key ? ' active' : ''}`}
+              aria-pressed={mode === key}
+              onClick={() => { setMode(key); setTocado(false) }}>
+              {lbl}
+            </button>
+          ))}
+        </div>
 
-    <div className="dn-divider" />
-
-    {/* ── Gráfica ── */}
-    {paramsOk && (
-      <NormalCurveChart
-        mu={mu}
-        sigma={sigma}
-        mode={mode}
-        a={chartA}
-        b={chartB}
-      />
-    )}
-
-    {/* ── Resultados ── */}
-    <div className="dn-resultados">
-      <h2 className="dn-resultados-title">Resultados</h2>
-      {!resultado && (
-        <p className="dn-resultados-placeholder">
-          Los resultados aparecerán aquí después del cálculo…
-        </p>
-      )}
-      {resultado?.error && (
-        <p className="dn-resultados-error">{resultado.error}</p>
-      )}
-      {resultado && !resultado.error && (
-        <>
-          <p className="dn-result-label">{resultado.label}</p>
-          <div className="dn-resultados-grid">
-            <div className="dn-resultado-card accent">
-              <span className="dn-resultado-label">Probabilidad</span>
-              <span className="dn-resultado-valor">{resultado.prob}%</span>
-            </div>
-            {resultado.z2 === null ? (
-              <div className="dn-resultado-card">
-                <span className="dn-resultado-label">Valor Z</span>
-                <span className="dn-resultado-valor">{resultado.z1}</span>
+        <div className="dn-limits">
+          {showA && (
+            <div className="dn-limit-group">
+              <label className="dn-label" htmlFor="dn-f3">
+                {mode === 'between' ? 'Límite inferior a' : 'Valor x'}
+              </label>
+              <div className="dn-limit-row">
+                <input id="dn-f3" className="dn-input" type="number" step="any"
+                  placeholder={aIsNegInf ? '−∞' : '0'}
+                  value={xA} disabled={aIsNegInf}
+                  onChange={e => setXA(e.target.value)} />
+                {mode === 'between' && (
+                  <label className="dn-inf-check">
+                    <input type="checkbox" checked={aIsNegInf}
+                      onChange={e => setAIsNegInf(e.target.checked)} />
+                    <span>−∞</span>
+                  </label>
+                )}
               </div>
-            ) : (
-              <>
-                <div className="dn-resultado-card">
-                  <span className="dn-resultado-label">Z₁ (a)</span>
-                  <span className="dn-resultado-valor">{resultado.z1}</span>
-                </div>
-                <div className="dn-resultado-card">
-                  <span className="dn-resultado-label">Z₂ (b)</span>
-                  <span className="dn-resultado-valor">{resultado.z2}</span>
-                </div>
-              </>
-            )}
-            <div className="dn-resultado-card">
-              <span className="dn-resultado-label">Densidad f(μ)</span>
-              <span className="dn-resultado-valor">{resultado.densidadMu}</span>
             </div>
-          </div>
-        </>
-      )}
+          )}
+
+          {showB && (
+            <div className="dn-limit-group">
+              <label className="dn-label" htmlFor="dn-f4">Límite superior b</label>
+              <div className="dn-limit-row">
+                <input id="dn-f4" className="dn-input" type="number" step="any"
+                  placeholder={bIsPosInf ? '+∞' : '0'}
+                  value={xB} disabled={bIsPosInf}
+                  onChange={e => setXB(e.target.value)} />
+                <label className="dn-inf-check">
+                  <input type="checkbox" checked={bIsPosInf}
+                    onChange={e => setBIsPosInf(e.target.checked)} />
+                  <span>+∞</span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {mode === 'inv' && (
+            <>
+              <div className="dn-limit-group">
+                <label className="dn-label" htmlFor="dn-f5">¿Qué probabilidad conoces?</label>
+                <select id="dn-f5" className="dn-select" value={invKind}
+                  onChange={e => { setInvKind(e.target.value); setTocado(false) }}>
+                  {Object.entries(INV_KINDS).map(([k, l]) => (
+                    <option key={k} value={k}>{l}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="dn-limit-group">
+                <label className="dn-label" htmlFor="dn-f6">
+                  {invKind === 'two' ? 'α (ej. 0.05 ó 5)'
+                    : invKind === 'center' ? 'Confianza (ej. 0.95 ó 95)'
+                    : 'Probabilidad p (ej. 0.975 ó 97.5)'}
+                </label>
+                <input id="dn-f6" className="dn-input" type="number" step="any"
+                  placeholder={invKind === 'two' ? '0.05' : invKind === 'center' ? '0.95' : '0.975'}
+                  value={probIn} onChange={e => setProbIn(e.target.value)} />
+                {!isNaN(probPreview) && (
+                  <span className="dn-hint">Se interpreta como {(probPreview * 100).toFixed(2)} %</span>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="dn-buttons">
+          <button className="dn-btn-calcular" onClick={() => setTocado(true)}>
+            {mode === 'inv' ? 'Encontrar Z' : 'Calcular probabilidad'}
+          </button>
+          <button className="dn-btn-limpiar" onClick={limpiar}>Limpiar</button>
+        </div>
+
+        <div className="dn-divider" />
+
+        {paramsOk && geometry && (
+          <DistChart pdfFn={pdfFn} domain={domain}
+            regions={geometry.regions} cuts={geometry.cuts}
+            center={mu} centerLabel="μ" color="#22c55e"
+            label={`Curva normal con media ${mu} y desviación ${sigma}. ${resultado && !resultado.error ? resultado.label : ''}`} />
+        )}
+
+        <div className="dn-resultados" aria-live="polite">
+          <h2 className="dn-resultados-title">Resultados</h2>
+          {!resultado && (
+            <p className="dn-resultados-placeholder">
+              Los resultados aparecerán aquí después del cálculo…
+            </p>
+          )}
+          {resultado?.error && <p className="dn-resultados-error">{resultado.error}</p>}
+          {resultado && !resultado.error && (
+            <>
+              <p className="dn-result-label">{resultado.label}</p>
+              <div className="dn-resultados-grid">
+                {resultado.cards.map((c, i) => (
+                  <div key={i} className={`dn-resultado-card${c.accent ? ' accent' : ''}`}>
+                    <span className="dn-resultado-label">{c.label}</span>
+                    <span className="dn-resultado-valor">{c.value}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+      </div>
     </div>
-
-    {onBack && (
-      <button className="dn-btn-volver" onClick={onBack}>
-        ← Volver al menú
-      </button>
-    )}
-  </div>
-</div>
-
-
-)
+  )
 }

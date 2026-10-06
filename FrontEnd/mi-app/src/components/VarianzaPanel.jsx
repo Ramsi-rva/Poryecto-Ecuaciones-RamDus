@@ -11,6 +11,7 @@ export default function VarianzaPanel() {
   const [rawInput, setRawInput] = useState('4, 8, 15, 16, 23, 42')
   const [type, setType] = useState('population')
   const { data, loading, error, execute } = useApi(statsApi.variance)
+  const [formError, setFormError] = useState(null)
 
   const handleCalculate = () => {
     const parsed = rawInput
@@ -19,9 +20,10 @@ export default function VarianzaPanel() {
       .filter((v) => !isNaN(v))
 
     if (parsed.length < 2) {
-      alert('Ingresa al menos 2 valores numéricos separados por coma.')
+      setFormError('Ingresa al menos 2 valores numéricos separados por coma.')
       return
     }
+    setFormError(null)
     execute(parsed, type)
   }
 
@@ -30,8 +32,9 @@ export default function VarianzaPanel() {
       <h2 className="panel-title">Calculadora de Varianza</h2>
 
       <div className="form-group">
-        <label className="form-label">Datos (separados por coma)</label>
+        <label className="form-label" htmlFor="var-datos">Datos (separados por coma)</label>
         <input
+          id="var-datos"
           className="form-input"
           type="text"
           value={rawInput}
@@ -41,8 +44,9 @@ export default function VarianzaPanel() {
       </div>
 
       <div className="form-group">
-        <label className="form-label">Tipo de varianza</label>
+        <label className="form-label" htmlFor="var-tipo">Tipo de varianza</label>
         <select
+          id="var-tipo"
           className="form-select"
           value={type}
           onChange={(e) => setType(e.target.value)}
@@ -62,7 +66,9 @@ export default function VarianzaPanel() {
         </button>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {(formError || error) && (
+        <div className="alert alert-error" role="alert">{formError || error}</div>
+      )}
 
       {data && (
         <>

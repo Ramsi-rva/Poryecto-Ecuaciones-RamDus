@@ -56,7 +56,6 @@
   color: #ffffff;
   font-size: 1rem;
   padding: 0.75rem 1rem;
-  outline: none;
   transition: border-color 0.2s ease;
   width: 100%;
   box-sizing: border-box;
@@ -72,7 +71,7 @@
 }
 
 .dn-input::placeholder {
-  color: #4b5563;
+  color: #8b93a3;
 }
 
 .dn-input:disabled {
@@ -93,7 +92,7 @@
 }
 
 .dn-btn-calcular {
-  background: #16a34a;
+  background: #15803d;
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -105,7 +104,7 @@
 }
 
 .dn-btn-calcular:hover {
-  background: #15803d;
+  background: #166534;
 }
 
 .dn-btn-limpiar {
@@ -142,7 +141,7 @@
 }
 
 .dn-resultados-placeholder {
-  color: #6b7280;
+  color: #9ca3af;
   font-size: 0.95rem;
 }
 
@@ -217,7 +216,7 @@
   background: transparent;
   border: none;
   border-radius: 6px;
-  color: #6b7280;
+  color: #9ca3af;
   cursor: pointer;
   font-family: inherit;
   font-size: 0.88rem;
@@ -231,7 +230,7 @@
 }
 
 .dn-mode-tab.active {
-  background: #16a34a;
+  background: #15803d;
   color: #ffffff;
   font-weight: 600;
 }
@@ -262,7 +261,7 @@
   align-items: center;
   gap: 5px;
   cursor: pointer;
-  color: #6b7280;
+  color: #9ca3af;
   font-size: 0.85rem;
   white-space: nowrap;
   user-select: none;
@@ -293,7 +292,7 @@
   height: auto;
   display: block;
   border-radius: 8px;
-  background: #ffffff;
+  background: #1a1a2e;
   border: 1px solid rgba(255, 255, 255, 0.08);
   margin-bottom: 2rem;
 
@@ -332,4 +331,71 @@
     font-size: 0.78rem;
     padding: 0.55rem 0.25rem;
   }
+}
+
+/* ─── Tabs en varias líneas (5 modos) ─────────────────────── */
+.dn-mode-tabs { flex-wrap: wrap; }
+.dn-mode-tab { min-width: 110px; }
+
+/* ─── Tema cian para t-Student ────────────────────────────── */
+.dn-theme-t .dn-title-bar { background: #0e7490; }
+.dn-theme-t .dn-mode-tab.active { background: #0e7490; }
+.dn-theme-t .dn-btn-calcular { background: #0e7490; }
+.dn-theme-t .dn-btn-calcular:hover { background: #155e75; }
+.dn-theme-t .dn-resultado-card.accent { border-color: rgba(34, 211, 238, 0.5); }
+.dn-theme-t .dn-resultado-valor { color: #22d3ee; }
+.dn-theme-t .dn-inf-check input[type="checkbox"] { accent-color: #22d3ee; }
+.dn-theme-t .dn-inf-check:hover { color: #22d3ee; }
+
+/* ─── Ayudas y accesibilidad ──────────────────────────────── */
+.dn-hint {
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+.dn-mode-tab:focus-visible,
+.dn-btn-calcular:focus-visible,
+.dn-btn-limpiar:focus-visible,
+.dn-btn-volver:focus-visible,
+.dn-input:focus-visible,
+.dn-select:focus-visible {
+  outline: 2px solid #c4b5fd;
+  outline-offset: 2px;
+}
+
+.dn-topbar {
+  padding: 1rem 2.5rem 0;
+}
+
+@media (max-width: 768px) {
+  .dn-topbar { padding: 0.75rem 1.25rem 0; }
+}
+
+/* ─── Disposición: la gráfica es el centro de la pantalla ─── */
+.dn-body-wide { max-width: 1240px; }
+
+.dn-split {
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  gap: 2.5rem;
+  align-items: start;
+}
+
+.dn-split .dn-inputs-row { grid-template-columns: 1fr; gap: 0; }
+.dn-split .dn-limits { grid-template-columns: 1fr; gap: 0; }
+.dn-split .dn-limit-group { margin-bottom: 1.25rem; }
+.dn-split .dn-mode-tabs { margin-bottom: 1.25rem; }
+.dn-split .dn-buttons { margin-bottom: 0; flex-wrap: wrap; }
+
+.dn-stage {
+  position: sticky;
+  top: 1rem;
+  min-width: 0;
+}
+
+.dn-stage .dn-chart { margin-bottom: 1.5rem; }
+
+@media (max-width: 960px) {
+  .dn-split { grid-template-columns: 1fr; gap: 1.5rem; }
+  .dn-stage { position: static; }
 }

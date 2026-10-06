@@ -4,6 +4,8 @@
 
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
+const fs = require("fs");
 
 const statsRoutes = require("./routes/stats.routes");
 const distributionRoutes = require("./routes/distributions.routes");
@@ -27,6 +29,20 @@ app.use("/api/expected-value", expectedValueRoutes);
 app.get("/api/health", (req, res) => {
   res.json({ status: "OK", message: "Statistics API running", port: PORT });
 });
+
+// ── Frontend compilado (producción) ───────────────────────────
+// Si existe FrontEnd/mi-app/dist (después de `npm run build`), Express
+// también sirve la página, así todo vive bajo un solo enlace.
+const DIST = process.env.STATIC_DIR || path.join(__dirname, "..", "FrontEnd", "mi-app", "dist");
+if (fs.existsSync(path.join(DIST, "index.html"))) {
+  app.use(express.static(DIST));
+  app.use((req, res, next) => {
+    if (req.method === "GET" && !req.path.startsWith("/api/")) {
+      return res.sendFile(path.join(DIST, "index.html"));
+    }
+    next();
+  });
+}
 
 // ── 404 ───────────────────────────────────────────────────────
 app.use((req, res) => {

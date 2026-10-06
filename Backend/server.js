@@ -62,14 +62,9 @@ app.listen(PORT, () => {
   console.log(`   POST /api/stats/expected-value`);
   console.log(`   GET  /api/distributions/normal/curve`);
   console.log(`   POST /api/distributions/normal/area`);
-  console.log(`   POST /api/distributions/normal/zscore`);
-  console.log(`   GET  /api/distributions/tstudent/curve`);
-  console.log(`   GET  /api/distributions/tstudent/compare`);
   console.log(`   GET  /api/problems`);
   console.log(`   GET  /api/problems/:id`);
-
   console.log(`   POST /api/expected-value/fx`);
   console.log(`   POST /api/expected-value/distribution`);
-  console.log(`   POST /api/expected-value/fxy`);
-  console.log(`   POST /api/expected-value/px\n`);
+  console.log(`   POST /api/expected-value/fxy\n`);
 });

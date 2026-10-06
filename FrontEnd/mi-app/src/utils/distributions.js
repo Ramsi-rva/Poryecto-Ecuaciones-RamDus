@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────
-// distributions.js — Matemática de la Normal y la t-Student
-// (CDF, PDF, inversas, colas, valores críticos y alfa)
+// distributions.js — Matemática de probabilidad y estadística
+// Normal, t-Student, Chi-cuadrada, F, Binomial, Poisson,
+// intervalos de confianza y pruebas de hipótesis para la media
 // ─────────────────────────────────────────────────────────────
 
 // ══ NORMAL ═══════════════════════════════════════════════════
@@ -88,7 +89,7 @@ export function normalInv(p) {
 // ══ t-STUDENT ════════════════════════════════════════════════
 
 // log Γ(x) — Lanczos
-function lgamma(x) {
+export function lgamma(x) {
   const g = 7
   const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
     771.32342877765313, -176.61502916214059, 12.507343278686905,
@@ -128,7 +129,7 @@ function betaCf(x, a, b) {
   return h
 }
 
-function betaInc(x, a, b) {
+export function betaInc(x, a, b) {
   if (x <= 0) return 0
   if (x >= 1) return 1
   const bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x))
@@ -214,4 +215,132 @@ export function parseProb(str) {
   if (isNaN(v)) return NaN
   const p = v > 1 ? v / 100 : v
   return p > 0 && p < 1 ? p : NaN
+}
+
+
+// ══ CHI-CUADRADA ═════════════════════════════════════════════
+
+// Gamma incompleta regularizada inferior P(a, x)
+export function gammaInc(a, x) {
+  if (x <= 0) return 0
+  if (x === Infinity) return 1
+  const gln = lgamma(a)
+  if (x < a + 1) {
+    // serie
+    let ap = a, sum = 1 / a, del = sum
+    for (let n = 0; n < 1000; n++) {
+      ap += 1
+      del *= x / ap
+      sum += del
+      if (Math.abs(del) < Math.abs(sum) * 1e-16) break
+    }
+    return sum * Math.exp(-x + a * Math.log(x) - gln)
+  }
+  // fracción continua (Lentz) para Q(a, x)
+  const FPMIN = 1e-300
+  let b = x + 1 - a, c = 1 / FPMIN, d = 1 / b, h = d
+  for (let i = 1; i < 1000; i++) {
+    const an = -i * (i - a)
+    b += 2
+    d = an * d + b; if (Math.abs(d) < FPMIN) d = FPMIN
+    c = b + an / c; if (Math.abs(c) < FPMIN) c = FPMIN
+    d = 1 / d
+    const del = d * c
+    h *= del
+    if (Math.abs(del - 1) < 1e-16) break
+  }
+  return 1 - Math.exp(-x + a * Math.log(x) - gln) * h
+}
+
+// Inversa genérica por bisección para CDF crecientes en [0, ∞)
+function invPositive(cdfFn, p) {
+  if (!(p > 0 && p < 1)) {
+    if (p === 0) return 0
+    if (p === 1) return Infinity
+    return NaN
+  }
+  let lo = 0, hi = 1
+  while (cdfFn(hi) < p && hi < 1e15) hi *= 2
+  for (let i = 0; i < 300; i++) {
+    const mid = (lo + hi) / 2
+    if (cdfFn(mid) < p) lo = mid; else hi = mid
+    if (hi - lo < 1e-14 * Math.max(1, hi)) break
+  }
+  return (lo + hi) / 2
+}
+
+export function chi2Pdf(x, k) {
+  if (x < 0) return 0
+  if (x === 0) return k === 2 ? 0.5 : k < 2 ? Infinity : 0
+  return Math.exp((k / 2 - 1) * Math.log(x) - x / 2 - (k / 2) * Math.LN2 - lgamma(k / 2))
+}
+export const chi2Cdf = (x, k) => (x <= 0 ? 0 : gammaInc(k / 2, x / 2))
+export const chi2Inv = (p, k) => invPositive((x) => chi2Cdf(x, k), p)
+
+// ══ F DE FISHER ══════════════════════════════════════════════
+
+export function fPdf(x, d1, d2) {
+  if (x < 0) return 0
+  if (x === 0) return d1 === 2 ? 1 : d1 < 2 ? Infinity : 0
+  const logPdf = 0.5 * (d1 * Math.log(d1 * x) + d2 * Math.log(d2) - (d1 + d2) * Math.log(d1 * x + d2)) -
+    Math.log(x) - (lgamma(d1 / 2) + lgamma(d2 / 2) - lgamma((d1 + d2) / 2))
+  return Math.exp(logPdf)
+}
+export const fCdf = (x, d1, d2) => (x <= 0 ? 0 : betaInc((d1 * x) / (d1 * x + d2), d1 / 2, d2 / 2))
+export const fInv = (p, d1, d2) => invPositive((x) => fCdf(x, d1, d2), p)
+
+// ══ DISCRETAS: BINOMIAL Y POISSON ════════════════════════════
+
+const lfact = (n) => lgamma(n + 1)
+
+export function binomPmf(k, n, p) {
+  if (k < 0 || k > n || !Number.isInteger(k)) return 0
+  if (p === 0) return k === 0 ? 1 : 0
+  if (p === 1) return k === n ? 1 : 0
+  return Math.exp(lfact(n) - lfact(k) - lfact(n - k) + k * Math.log(p) + (n - k) * Math.log(1 - p))
+}
+// P(X ≤ k)
+export function binomCdf(k, n, p) {
+  if (k < 0) return 0
+  if (k >= n) return 1
+  let s = 0
+  for (let i = 0; i <= Math.floor(k); i++) s += binomPmf(i, n, p)
+  return Math.min(1, s)
+}
+
+export function poissonPmf(k, lambda) {
+  if (k < 0 || !Number.isInteger(k)) return 0
+  if (lambda === 0) return k === 0 ? 1 : 0
+  return Math.exp(-lambda + k * Math.log(lambda) - lfact(k))
+}
+export function poissonCdf(k, lambda) {
+  if (k < 0) return 0
+  let s = 0
+  for (let i = 0; i <= Math.floor(k); i++) s += poissonPmf(i, lambda)
+  return Math.min(1, s)
+}
+
+// ══ INFERENCIA PARA LA MEDIA ═════════════════════════════════
+// known = true → σ conocida (z); false → s muestral (t con n−1 gl)
+
+export function meanDist(known, n) {
+  return known ? { type: 'z' } : { type: 't', df: n - 1 }
+}
+
+export function confidenceInterval({ mean, sd, n, conf, known }) {
+  const dist = meanDist(known, n)
+  const crit = inv(1 - (1 - conf) / 2, dist)
+  const se = sd / Math.sqrt(n)
+  const margin = crit * se
+  return { crit, se, margin, lower: mean - margin, upper: mean + margin, dist }
+}
+
+// tail: 'two' | 'right' | 'left' — H1: μ ≠ μ0, μ > μ0, μ < μ0
+export function meanTest({ mean, mu0, sd, n, alpha, tail, known }) {
+  const dist = meanDist(known, n)
+  const se = sd / Math.sqrt(n)
+  const stat = (mean - mu0) / se
+  const p = pValue(stat, tail, dist)
+  const crit = criticalValue(alpha, tail, dist)
+  return { stat, p, crit, se, dist, reject: p < alpha }
 }

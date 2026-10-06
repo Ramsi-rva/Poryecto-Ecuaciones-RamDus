@@ -2,13 +2,19 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import DistribucionNormal from './components/DistribucionNormal'
 import DistribucionTStudent from './components/DistribucionTStudent'
+import DistribucionDiscreta from './components/DistribucionDiscreta'
+import DistribucionChiF from './components/DistribucionChiF'
+import Inferencia from './components/Inferencia'
 import ColeccionProblemas from './components/ColeccionProblemas'
 import VarianzaPanel from './components/VarianzaPanel'
 import ValorEsperadoPanel from './components/ValorEsperadoPanel'
 import Screen from './components/Screen'
 import heroImg from './media/fondo.png' 
 
-const VISTAS = ['varianza', 'valor-esperado', 'distribucion-normal', 'distribucion-t', 'coleccion-problemas']
+const VISTAS = [
+  'varianza', 'valor-esperado', 'distribucion-normal', 'distribucion-t',
+  'chi-f', 'discretas', 'inferencia', 'coleccion-problemas',
+]
 
 // La vista vive en el hash de la URL (#varianza, #distribucion-t, …) para que
 // el botón "atrás" del navegador regrese al menú en lugar de salir de la app.
@@ -68,6 +74,18 @@ function App() {
     return <DistribucionTStudent onBack={() => setVista('menu')} />
   }
 
+  if (vista === 'chi-f') {
+    return <DistribucionChiF onBack={() => setVista('menu')} />
+  }
+
+  if (vista === 'discretas') {
+    return <DistribucionDiscreta onBack={() => setVista('menu')} />
+  }
+
+  if (vista === 'inferencia') {
+    return <Inferencia onBack={() => setVista('menu')} />
+  }
+
   if (vista === 'coleccion-problemas') {
     return <ColeccionProblemas onBack={() => setVista('menu')} />
   }
@@ -101,7 +119,7 @@ function App() {
 
       <div className="menu-head">
         <h2 className="menu-title">Calculadoras</h2>
-        <span className="menu-count">5 herramientas</span>
+        <span className="menu-count">8 herramientas</span>
       </div>
 
       <div className="calculator-grid" onMouseMove={luz}>
@@ -112,7 +130,7 @@ function App() {
                 <rect x="4" y="4" width="16" height="16" rx="2" /><line x1="8" y1="8" x2="16" y2="8" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="8" y1="16" x2="13" y2="16" />
               </svg>
             </div>
-            <span className="card-tag">Estadística descriptiva</span>
+            <span className="card-tag">Descriptiva</span>
           </div>
           <h3>Varianza</h3>
           <p>Calcula la varianza de un conjunto de datos y revisa el procedimiento paso a paso.</p>
@@ -157,7 +175,46 @@ function App() {
           <p>t crítico, valor p, dos colas y α según los grados de libertad.</p>
           <span className="card-go" aria-hidden="true">Abrir →</span>
         </div>
-        <div className="calculator-card stagger" style={{ '--i': 4 }} {...abrir('coleccion-problemas')}>
+        <div className="calculator-card stagger" style={{ '--i': 4 }} {...abrir('chi-f')}>
+          <div className="card-top">
+            <div className="card-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 19 C3 6 6 5 9 12 C12 18 16 18 22 18" /><line x1="2" y1="19" x2="22" y2="19" />
+              </svg>
+            </div>
+            <span className="card-tag">Distribuciones</span>
+          </div>
+          <h3>Chi-cuadrada y F</h3>
+          <p>Valores críticos, valor p y probabilidades para χ² y la F de Fisher.</p>
+          <span className="card-go" aria-hidden="true">Abrir →</span>
+        </div>
+        <div className="calculator-card stagger" style={{ '--i': 5 }} {...abrir('discretas')}>
+          <div className="card-top">
+            <div className="card-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="20" x2="5" y2="13" /><line x1="10" y1="20" x2="10" y2="6" /><line x1="15" y1="20" x2="15" y2="10" /><line x1="20" y1="20" x2="20" y2="16" />
+              </svg>
+            </div>
+            <span className="card-tag">Distribuciones</span>
+          </div>
+          <h3>Binomial y Poisson</h3>
+          <p>Probabilidades exactas, acumuladas y por intervalo, con su gráfica de barras.</p>
+          <span className="card-go" aria-hidden="true">Abrir →</span>
+        </div>
+        <div className="calculator-card stagger" style={{ '--i': 6 }} {...abrir('inferencia')}>
+          <div className="card-top">
+            <div className="card-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12h4l3-7 4 14 3-7h4" />
+              </svg>
+            </div>
+            <span className="card-tag">Inferencia</span>
+          </div>
+          <h3>Inferencia sobre la media</h3>
+          <p>Intervalos de confianza y pruebas de hipótesis con z o t, y su región de rechazo.</p>
+          <span className="card-go" aria-hidden="true">Abrir →</span>
+        </div>
+        <div className="calculator-card stagger" style={{ '--i': 7 }} {...abrir('coleccion-problemas')}>
           <div className="card-top">
             <div className="card-icon">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

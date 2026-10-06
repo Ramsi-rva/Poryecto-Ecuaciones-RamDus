@@ -109,6 +109,7 @@
 }
 
 .card-icon {
+  flex: none;
   display: grid;
   place-items: center;
   width: 56px;
@@ -129,6 +130,7 @@
 
 .card-tag {
   padding: 4px 12px;
+  white-space: nowrap;
   border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 600;

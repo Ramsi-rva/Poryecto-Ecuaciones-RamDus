@@ -5,6 +5,9 @@
 //   regions : [[desde, hasta], ...] zonas sombreadas (admite ±Infinity), máx. 2
 //   cuts    : [x, ...] líneas de corte, máx. 2
 //   center  : posición de la línea central (μ o 0)
+//   lowerBound : límite izquierdo duro (p. ej. 0 para χ² y F)
+//   center  : null oculta la línea y la etiqueta central
+//   marker  : { x, label } línea dorada fija (p. ej. el estadístico de prueba)
 //   overlay : función opcional para una segunda curva punteada
 // Animaciones: la curva se dibuja al aparecer, el sombreado y las líneas
 // de corte se deslizan a su nueva posición, y al pasar el cursor aparece
@@ -23,7 +26,7 @@ const fmtTick = (x) => {
 
 export default function DistChart({
   pdfFn, domain, regions = [], cuts = [], center = 0,
-  centerLabel = 'μ', color = '#9be7ff', overlay = null,
+  centerLabel = 'μ', color = '#9be7ff', overlay = null, marker = null, lowerBound = null,
   label = 'Gráfica de la distribución',
 }) {
   const uid = useId().replace(/:/g, '')
@@ -49,17 +52,20 @@ export default function DistChart({
   const plotH = H - PAD.top - PAD.bottom
 
   const finiteCuts = cuts.filter(isFinite)
-  const cutsKey = finiteCuts.join(',')
+  const markerX = marker && isFinite(marker.x) ? marker.x : null
+  const cutsKey = finiteCuts.join(',') + (markerX === null ? '' : `|${markerX}`)
   const d0 = domain[0]
   const d1 = domain[1]
 
   const { pts, ovPts, xMin, xMax } = useMemo(() => {
     let lo = d0, hi = d1
     const margin = 0.15 * (hi - lo)
-    finiteCuts.forEach((c) => {
+    const wide = markerX === null ? finiteCuts : [...finiteCuts, markerX]
+    wide.forEach((c) => {
       lo = Math.min(lo, c - margin)
       hi = Math.max(hi, c + margin)
     })
+    if (lowerBound !== null) lo = Math.max(lo, lowerBound)
     const STEPS = 400
     const p = [], o = []
     for (let i = 0; i <= STEPS; i++) {
@@ -69,7 +75,7 @@ export default function DistChart({
     }
     return { pts: p, ovPts: o, xMin: lo, xMax: hi }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pdfFn, overlay, d0, d1, cutsKey])
+  }, [pdfFn, overlay, d0, d1, cutsKey, lowerBound])
 
   const yMax = Math.max(...pts.map((p) => p.y)) * 1.18
 
@@ -134,7 +140,7 @@ export default function DistChart({
       <defs>
         <linearGradient id={`g${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.55" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.06" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.28" />
         </linearGradient>
         <linearGradient id={`f${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.10" />
@@ -162,8 +168,10 @@ export default function DistChart({
 
       {/* Relleno tenue bajo toda la curva y línea central */}
       <path d={areaPath} fill={`url(#f${uid})`} className="dn-fade" />
-      <line x1={toX(center)} x2={toX(center)} y1={PAD.top} y2={baseY}
-        stroke={color} strokeOpacity="0.4" strokeDasharray="3 5" />
+      {center !== null && (
+        <line x1={toX(center)} x2={toX(center)} y1={PAD.top} y2={baseY}
+          stroke={color} strokeOpacity="0.4" strokeDasharray="3 5" />
+      )}
 
       {/* Sombreado (deslizante) */}
       {clipRects.map((_, i) => (
@@ -209,10 +217,24 @@ export default function DistChart({
         )
       })}
 
-      <text x={toX(center)} y={PAD.top - 12} textAnchor="middle" fill={color} fontSize="15"
-        fontWeight="600" fontFamily="Lora, Georgia, serif" fontStyle="italic">
-        {centerLabel}
-      </text>
+      {center !== null && (
+        <text x={toX(center)} y={PAD.top - 12} textAnchor="middle" fill={color} fontSize="15"
+          fontWeight="600" fontFamily="Lora, Georgia, serif" fontStyle="italic">
+          {centerLabel}
+        </text>
+      )}
+
+      {/* Marcador fijo (estadístico de prueba) */}
+      {markerX !== null && (
+        <g style={{ ...slide, transform: `translateX(${toX(markerX)}px)` }}>
+          <line x1="0" x2="0" y1={PAD.top - 4} y2={baseY} stroke="#ecdcaa" strokeWidth="2.2" />
+          <circle cx="0" cy={toY(pdfFn(markerX))} r="5.5" fill="#ecdcaa" stroke="#08081a" strokeWidth="2" />
+          <text x="0" y={PAD.top - 12} textAnchor="middle" fill="#ecdcaa" fontSize="14" fontWeight="700"
+            fontFamily="Inter, system-ui, sans-serif">
+            {marker.label}
+          </text>
+        </g>
+      )}
 
       {/* Lectura bajo el cursor */}
       {hover && (

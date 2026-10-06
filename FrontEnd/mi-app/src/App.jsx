@@ -5,6 +5,7 @@ import DistribucionTStudent from './components/DistribucionTStudent'
 import ColeccionProblemas from './components/ColeccionProblemas'
 import VarianzaPanel from './components/VarianzaPanel'
 import ValorEsperadoPanel from './components/ValorEsperadoPanel'
+import Screen from './components/Screen'
 import heroImg from './media/fondo.png' 
 
 const VISTAS = ['varianza', 'valor-esperado', 'distribucion-normal', 'distribucion-t', 'coleccion-problemas']
@@ -37,6 +38,15 @@ function App() {
     }
   }
 
+  // Foco de luz que sigue al cursor sobre la tarjeta
+  const luz = (e) => {
+    const card = e.target.closest?.('.calculator-card')
+    if (!card) return
+    const r = card.getBoundingClientRect()
+    card.style.setProperty('--mx', `${e.clientX - r.left}px`)
+    card.style.setProperty('--my', `${e.clientY - r.top}px`)
+  }
+
   // Props para que una tarjeta se comporte como botón (ratón y teclado)
   const abrir = (v) => ({
     role: 'button',
@@ -64,117 +74,104 @@ function App() {
 
   if (vista === 'varianza') {
     return (
-      <div className="dn-container">
-        <div className="dn-topbar">
-          <button className="dn-btn-volver" onClick={() => setVista('menu')}>← Volver al menú</button>
-        </div>
-        <div className="dn-header">
-          <div className="dn-title-bar" style={{ background: '#9d4edd' }}></div>
-          <h1 className="dn-title">Calculadora de Varianza</h1>
-        </div>
-        <div className="dn-body">
-          <VarianzaPanel />
-        </div>
-      </div>
+      <Screen title="Calculadora de varianza" onBack={() => setVista('menu')}>
+        <VarianzaPanel />
+      </Screen>
     )
   }
 
   if (vista === 'valor-esperado') {
     return (
-      <div className="dn-container">
-        <div className="dn-topbar">
-          <button className="dn-btn-volver" onClick={() => setVista('menu')}>← Volver al menú</button>
-        </div>
-        <div className="dn-header">
-          <div className="dn-title-bar" style={{ background: '#60a5fa' }}></div>
-          <h1 className="dn-title">Valor esperado E(X)</h1>
-        </div>
-        <div className="dn-body">
-          <ValorEsperadoPanel />
-        </div>
-      </div>
+      <Screen title="Valor esperado E(X)" onBack={() => setVista('menu')}>
+        <ValorEsperadoPanel />
+      </Screen>
     )
   }
 
   return (
-    <div className="App">
+    <main className="menu">
       <h1 className="sr-only">Calculadora de probabilidad y estadística</h1>
-      <div className="header-with-background">
-  <img src={heroImg} alt="Calculadora de probabilidad y estadística — Facultad de Ingeniería y Tecnología, Universidad de Montemorelos" className="background-image" />
-  <div className="overlay"></div>
-  <div className="hero-section">
-    
-  </div>
-</div>
 
-      <div className="decorative-line"></div>
+      <figure className="poster">
+        <img
+          src={heroImg}
+          alt="Calculadora de probabilidad y estadística — Facultad de Ingeniería y Tecnología, Universidad de Montemorelos"
+        />
+      </figure>
 
-      <main className="content-section">
-        <div className="calculator-grid">
+      <div className="menu-head">
+        <h2 className="menu-title">Calculadoras</h2>
+        <span className="menu-count">5 herramientas</span>
+      </div>
 
-          <div className="calculator-card" {...abrir('varianza')}>
-            <div className="card-icon purple">
-              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="4" y="4" width="16" height="16" rx="2" />
-                <line x1="8" y1="12" x2="16" y2="12" />
-                <line x1="8" y1="16" x2="16" y2="16" />
-                <line x1="8" y1="8" x2="16" y2="8" />
+      <div className="calculator-grid" onMouseMove={luz}>
+        <div className="calculator-card stagger" style={{ '--i': 0 }} {...abrir('varianza')}>
+          <div className="card-top">
+            <div className="card-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="4" y="4" width="16" height="16" rx="2" /><line x1="8" y1="8" x2="16" y2="8" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="8" y1="16" x2="13" y2="16" />
               </svg>
             </div>
-            <h3>Varianza</h3>
-            <p>Calcula la varianza de un conjunto de datos.</p>
+            <span className="card-tag">Estadística descriptiva</span>
           </div>
-
-          <div className="calculator-card" {...abrir('valor-esperado')}>
-            <div className="card-icon blue">
-              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="20" x2="12" y2="10" />
-                <line x1="18" y1="20" x2="18" y2="4" />
-                <line x1="6" y1="20" x2="6" y2="16" />
-              </svg>
-            </div>
-            <h3>Valor esperado</h3>
-            <p>Obtenga un valor esperado de una variable aleatoria.</p>
-          </div>
-
-          <div className="calculator-card" {...abrir('distribucion-normal')}>
-            <div className="card-icon green">
-              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-                <polyline points="17 6 23 6 23 12" />
-              </svg>
-            </div>
-            <h3>Distribución normal</h3>
-            <p>Desarrolle la forma gráfica de la distribución normal estándar.</p>
-          </div>
-
-          <div className="calculator-card" {...abrir('distribucion-t')}>
-            <div className="card-icon cyan">
-              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M2 19 C6 19, 8 5, 12 5 C16 5, 18 19, 22 19" />
-                <line x1="2" y1="19" x2="22" y2="19" />
-              </svg>
-            </div>
-            <h3>Distribución t de Student</h3>
-            <p>Probabilidades, t crítico, dos colas y valor α según los grados de libertad.</p>
-          </div>
-
-          <div className="calculator-card" {...abrir('coleccion-problemas')}>
-            <div className="card-icon orange">
-              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-            </div>
-            <h3>Colección de problemas</h3>
-            <p>Acceda a una biblioteca de problemas resueltos y ejercicios prácticos.</p>
-          </div>
-
+          <h3>Varianza</h3>
+          <p>Calcula la varianza de un conjunto de datos y revisa el procedimiento paso a paso.</p>
+          <span className="card-go" aria-hidden="true">Abrir →</span>
         </div>
-      </main>
-
-      <div className="decorative-line"></div>
-    </div>
+        <div className="calculator-card stagger" style={{ '--i': 1 }} {...abrir('valor-esperado')}>
+          <div className="card-top">
+            <div className="card-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="6" y1="20" x2="6" y2="15" /><line x1="12" y1="20" x2="12" y2="9" /><line x1="18" y1="20" x2="18" y2="4" />
+              </svg>
+            </div>
+            <span className="card-tag">Variables aleatorias</span>
+          </div>
+          <h3>Valor esperado</h3>
+          <p>Obtén E(X) de una variable aleatoria a partir de su función f(x).</p>
+          <span className="card-go" aria-hidden="true">Abrir →</span>
+        </div>
+        <div className="calculator-card stagger" style={{ '--i': 2 }} {...abrir('distribucion-normal')}>
+          <div className="card-top">
+            <div className="card-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 19 C7 19 8 5 12 5 C16 5 17 19 22 19" /><line x1="2" y1="19" x2="22" y2="19" />
+              </svg>
+            </div>
+            <span className="card-tag">Distribuciones</span>
+          </div>
+          <h3>Distribución normal</h3>
+          <p>Probabilidades, valores z, dos colas y su inversa sobre la curva normal.</p>
+          <span className="card-go" aria-hidden="true">Abrir →</span>
+        </div>
+        <div className="calculator-card stagger" style={{ '--i': 3 }} {...abrir('distribucion-t')}>
+          <div className="card-top">
+            <div className="card-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 19 C6 19 8 9 12 9 C16 9 18 19 22 19" /><path d="M2 14 C6 17 9 6 12 6 C15 6 18 17 22 14" opacity=".5" /><line x1="2" y1="19" x2="22" y2="19" />
+              </svg>
+            </div>
+            <span className="card-tag">Distribuciones</span>
+          </div>
+          <h3>Distribución t de Student</h3>
+          <p>t crítico, valor p, dos colas y α según los grados de libertad.</p>
+          <span className="card-go" aria-hidden="true">Abrir →</span>
+        </div>
+        <div className="calculator-card stagger" style={{ '--i': 4 }} {...abrir('coleccion-problemas')}>
+          <div className="card-top">
+            <div className="card-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15.5 14" />
+              </svg>
+            </div>
+            <span className="card-tag">Práctica</span>
+          </div>
+          <h3>Colección de problemas</h3>
+          <p>Diez problemas resueltos con su solución y su gráfica.</p>
+          <span className="card-go" aria-hidden="true">Abrir →</span>
+        </div>
+      </div>
+    </main>
   )
 }
 

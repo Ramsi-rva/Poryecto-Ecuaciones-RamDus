@@ -18,25 +18,7 @@ function parseProbability(value) {
 
   return NaN
 }
-// ─────────────────────────────────────────────
-// Evaluador seguro
-// ─────────────────────────────────────────────
-function evaluateExpression(expression, x, y = null) {
-  try {
-    let expr = expression
-
-    expr = expr.replace(/\^/g, '**')
-    expr = expr.replace(/x/g, `(${x})`)
-
-    if (y !== null) {
-      expr = expr.replace(/y/g, `(${y})`)
-    }
-
-    return Function(`return ${expr}`)()
-  } catch {
-    return NaN
-  }
-}
+const { evaluateExpression } = require('./safeEval')
 
 // ─────────────────────────────────────────────
 // POST /api/expected-value/fx

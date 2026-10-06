@@ -1,5 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import './ColeccionProblemas.css'
+import Screen from './Screen'
+import DistChart from './DistChart'
+import { normalPdf } from '../utils/distributions'
 
 const problemas = [
   {
@@ -139,273 +142,96 @@ const problemas = [
   },
 ]
 
-function erf(x) {
-  const a1=0.254829592, a2=-0.284496736, a3=1.421413741, a4=-1.453152027, a5=1.061405429, p=0.3275911
-  const sign = x < 0 ? -1 : 1
-  x = Math.abs(x)
-  const t = 1 / (1 + p * x)
-  const y = 1 - (((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x)
-  return sign * y
-}
-
-function normalPDF(x, mu, sigma) {
-  return (1 / (sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * ((x - mu) / sigma) ** 2)
-}
+const TIPOS = { menor: 'Cola izquierda', mayor: 'Cola derecha', entre: 'Intervalo' }
 
 function GraficaNormal({ grafica }) {
-  const canvasRef = useRef(null)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    const W = canvas.width, H = canvas.height
-    const PAD = { top: 20, right: 20, bottom: 40, left: 48 }
-    const plotW = W - PAD.left - PAD.right
-    const plotH = H - PAD.top - PAD.bottom
-
-    ctx.clearRect(0, 0, W, H)
-
-    // Fondo blanco
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, W, H)
-
-    const { mu, sigma, tipo, a, b } = grafica
-    const xMin = mu - 4 * sigma
-    const xMax = mu + 4 * sigma
-    const steps = 400
-    const xs = Array.from({ length: steps }, (_, i) => xMin + (i / (steps - 1)) * (xMax - xMin))
-    const ys = xs.map(x => normalPDF(x, mu, sigma))
-    const yMax = Math.max(...ys) * 1.25
-
-    const toX = x => PAD.left + ((x - xMin) / (xMax - xMin)) * plotW
-    const toY = y => PAD.top + plotH - (y / yMax) * plotH
-    const baseY = PAD.top + plotH
-
-    // ── Cuadrícula ──
-    ctx.strokeStyle = '#d1d5db'
-    ctx.lineWidth = 0.8
-
-    // Líneas verticales (cada sigma)
-    for (let i = -4; i <= 4; i++) {
-      const x = mu + i * sigma
-      const cx = toX(x)
-      ctx.beginPath(); ctx.moveTo(cx, PAD.top); ctx.lineTo(cx, baseY); ctx.stroke()
-    }
-
-    // Líneas horizontales
-    const yTicks = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
-    yTicks.forEach(yv => {
-      if (yv > yMax * 0.95) return
-      const cy = toY(yv / (1 / (sigma * Math.sqrt(2 * Math.PI))) * (1 / (sigma * Math.sqrt(2 * Math.PI))))
-      // Normalizar el tick al espacio actual
-      const cyNorm = PAD.top + plotH - (yv / yMax) * plotH
-      ctx.beginPath(); ctx.moveTo(PAD.left, cyNorm); ctx.lineTo(PAD.left + plotW, cyNorm); ctx.stroke()
-    })
-
-    // ── Área sombreada (azul) ──
-    ctx.fillStyle = 'rgba(59, 130, 246, 0.30)'
-    ctx.beginPath()
-    let started = false
-    for (let i = 0; i < xs.length; i++) {
-      const x = xs[i]
-      const inArea =
-        tipo === 'menor' ? x <= b :
-        tipo === 'mayor' ? x >= a :
-        x >= a && x <= b
-      if (inArea) {
-        const cx = toX(x), cy = toY(ys[i])
-        if (!started) { ctx.moveTo(cx, baseY); ctx.lineTo(cx, cy); started = true }
-        else ctx.lineTo(cx, cy)
-      } else if (started) {
-        ctx.lineTo(toX(xs[i - 1]), baseY)
-        ctx.closePath(); ctx.fill()
-        ctx.beginPath(); started = false
-      }
-    }
-    if (started) {
-      ctx.lineTo(toX(xs[xs.length - 1]), baseY)
-      ctx.closePath(); ctx.fill()
-    }
-
-    // Borde del área sombreada
-    ctx.strokeStyle = 'rgba(59, 130, 246, 0.7)'
-    ctx.lineWidth = 1.2
-    ctx.beginPath()
-    started = false
-    for (let i = 0; i < xs.length; i++) {
-      const x = xs[i]
-      const inArea =
-        tipo === 'menor' ? x <= b :
-        tipo === 'mayor' ? x >= a :
-        x >= a && x <= b
-      if (inArea) {
-        const cx = toX(x), cy = toY(ys[i])
-        if (!started) { ctx.moveTo(cx, cy); started = true }
-        else ctx.lineTo(cx, cy)
-      } else if (started) break
-    }
-    ctx.stroke()
-
-    // ── Líneas de corte verticales ──
-    ctx.strokeStyle = '#374151'
-    ctx.lineWidth = 1
-    ctx.setLineDash([5, 4])
-    if (tipo === 'menor') {
-      const cx = toX(b)
-      ctx.beginPath(); ctx.moveTo(cx, PAD.top); ctx.lineTo(cx, baseY); ctx.stroke()
-    } else if (tipo === 'mayor') {
-      const cx = toX(a)
-      ctx.beginPath(); ctx.moveTo(cx, PAD.top); ctx.lineTo(cx, baseY); ctx.stroke()
-    } else {
-      [a, b].forEach(v => {
-        const cx = toX(v)
-        ctx.beginPath(); ctx.moveTo(cx, PAD.top); ctx.lineTo(cx, baseY); ctx.stroke()
-      })
-    }
-    ctx.setLineDash([])
-
-    // ── Curva normal (negra) ──
-    ctx.strokeStyle = '#111827'
-    ctx.lineWidth = 2
-    ctx.lineJoin = 'round'
-    ctx.beginPath()
-    xs.forEach((x, i) => {
-      i === 0 ? ctx.moveTo(toX(x), toY(ys[i])) : ctx.lineTo(toX(x), toY(ys[i]))
-    })
-    ctx.stroke()
-
-    // ── Eje X (línea base) ──
-    ctx.strokeStyle = '#374151'
-    ctx.lineWidth = 1
-    ctx.beginPath(); ctx.moveTo(PAD.left, baseY); ctx.lineTo(PAD.left + plotW, baseY); ctx.stroke()
-
-    // ── Etiquetas eje X ──
-    ctx.fillStyle = '#374151'
-    ctx.font = '10px monospace'
-    ctx.textAlign = 'center'
-    for (let i = -4; i <= 4; i++) {
-      const x = mu + i * sigma
-      const label = sigma === 1 ? x.toFixed(1) : x % 1 === 0 ? x.toString() : x.toFixed(2)
-      ctx.fillText(label, toX(x), baseY + 14)
-    }
-
-    // ── Etiquetas eje Y ──
-    ctx.textAlign = 'right'
-    ctx.fillStyle = '#6b7280'
-    ctx.font = '9px monospace'
-    const pdfMax = 1 / (sigma * Math.sqrt(2 * Math.PI))
-    const ySteps = 5
-    for (let j = 0; j <= ySteps; j++) {
-      const yv = (j / ySteps) * pdfMax
-      const cy = PAD.top + plotH - (yv / yMax) * plotH
-      if (j > 0) {
-        ctx.fillText(yv.toFixed(2), PAD.left - 4, cy + 3)
-        // tick
-        ctx.strokeStyle = '#9ca3af'
-        ctx.lineWidth = 0.8
-        ctx.beginPath(); ctx.moveTo(PAD.left - 3, cy); ctx.lineTo(PAD.left, cy); ctx.stroke()
-      }
-    }
-
-    // ── Etiqueta del valor de corte ──
-    ctx.fillStyle = '#1d4ed8'
-    ctx.font = 'bold 10px monospace'
-    ctx.textAlign = 'center'
-    const labelVal = tipo === 'menor' ? b : tipo === 'mayor' ? a : `${a} – ${b}`
-    const labelX = tipo === 'menor' ? toX(b) : tipo === 'mayor' ? toX(a) : toX((a + b) / 2)
-    ctx.fillText(String(labelVal), labelX, baseY + 28)
-
-  }, [grafica])
+  const { mu, sigma, tipo, a, b } = grafica
+  const pdfFn = useMemo(() => (x) => normalPdf(x, mu, sigma), [mu, sigma])
+  const domain = useMemo(() => [mu - 4 * sigma, mu + 4 * sigma], [mu, sigma])
+  const regions = tipo === 'menor' ? [[-Infinity, b]] : tipo === 'mayor' ? [[a, Infinity]] : [[a, b]]
+  const cuts = tipo === 'menor' ? [b] : tipo === 'mayor' ? [a] : [a, b]
 
   return (
     <div className="cp-grafica-wrap">
       <span className="cp-grafica-label">Gráfica de distribución</span>
-      <canvas ref={canvasRef} className="cp-canvas" width={420} height={200} />
+      <DistChart
+        pdfFn={pdfFn}
+        domain={domain}
+        regions={regions}
+        cuts={cuts}
+        center={mu}
+        label={`Curva normal con media ${mu} y desviación ${sigma}`}
+      />
     </div>
   )
 }
 
 function ColeccionProblemas({ onBack }) {
   const [seleccionado, setSeleccionado] = useState(null)
+  const p = problemas.find((x) => x.id === seleccionado)
 
   return (
-    <div className="cp-container">
-      <div className="cp-header">
-        <div className="cp-title-bar"></div>
-        <h1 className="cp-title">Colección de Problemas</h1>
-      </div>
+    <Screen title="Colección de problemas" onBack={onBack} wide>
+      {!p ? (
+        <>
+          <p className="cp-subtitulo">Distribución normal estándar — 10 problemas resueltos</p>
+          <div className="cp-lista">
+            {problemas.map((q, i) => (
+              <button key={q.id} className="cp-item" style={{ '--i': i }} onClick={() => setSeleccionado(q.id)}>
+                <span className="cp-item-numero">{q.id}</span>
+                <span className="cp-item-info">
+                  <span className="cp-item-titulo">{q.titulo}</span>
+                  <span className="cp-item-enunciado">{q.enunciado}</span>
+                </span>
+                <span className="cp-item-tag">{TIPOS[q.grafica.tipo]}</span>
+                <span className="cp-item-arrow" aria-hidden="true">›</span>
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="cp-detalle">
+          <button className="cp-btn-atras" onClick={() => setSeleccionado(null)}>
+            ← Volver a la lista
+          </button>
 
-      <div className="cp-body">
-        {seleccionado === null ? (
-          <>
-            <p className="cp-subtitulo">Distribución Normal Estándar — 10 problemas resueltos</p>
-            <div className="cp-lista">
-              {problemas.map((p) => (
-                <div key={p.id} className="cp-item" onClick={() => setSeleccionado(p.id)}>
-                  <div className="cp-item-numero">{p.id}</div>
-                  <div className="cp-item-info">
-                    <span className="cp-item-titulo">{p.titulo}</span>
-                    <span className="cp-item-enunciado">{p.enunciado}</span>
-                  </div>
-                  <div className="cp-item-arrow">›</div>
+          <div className="cp-detalle-card">
+            <div className="cp-detalle-numero">{p.id}</div>
+            <h2 className="cp-detalle-titulo">{p.titulo}</h2>
+
+            <div className="cp-detalle-body">
+              <div className="cp-detalle-izq">
+                <div className="cp-seccion">
+                  <span className="cp-seccion-label">Enunciado</span>
+                  <p className="cp-detalle-enunciado">{p.enunciado}</p>
                 </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          (() => {
-            const p = problemas.find((x) => x.id === seleccionado)
-            return (
-              <div className="cp-detalle">
-                <button className="cp-btn-atras" onClick={() => setSeleccionado(null)}>
-                  ← Volver a la lista
-                </button>
 
-                <div className="cp-detalle-card">
-                  <div className="cp-detalle-numero">{p.id}</div>
-                  <h2 className="cp-detalle-titulo">{p.titulo}</h2>
+                <div className="cp-divider"></div>
 
-                  <div className="cp-detalle-body">
-                    <div className="cp-detalle-izq">
-                      <div className="cp-seccion">
-                        <span className="cp-seccion-label">Enunciado</span>
-                        <p className="cp-detalle-enunciado">{p.enunciado}</p>
+                <div className="cp-seccion">
+                  <span className="cp-seccion-label">Solución paso a paso</span>
+                  <div className="cp-pasos">
+                    {p.solucion.map((paso, i) => (
+                      <div key={i} className="cp-paso" style={{ '--i': i }}>
+                        <span className="cp-paso-num">{i + 1}</span>
+                        <span className="cp-paso-texto">{paso}</span>
                       </div>
-
-                      <div className="cp-divider"></div>
-
-                      <div className="cp-seccion">
-                        <span className="cp-seccion-label">Solución paso a paso</span>
-                        <div className="cp-pasos">
-                          {p.solucion.map((paso, i) => (
-                            <div key={i} className="cp-paso">
-                              <span className="cp-paso-num">{i + 1}</span>
-                              <span className="cp-paso-texto">{paso}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="cp-resultado-box">
-                        <span className="cp-resultado-label">Resultado</span>
-                        <span className="cp-resultado-valor">{p.resultado}</span>
-                      </div>
-                    </div>
-
-                    <GraficaNormal grafica={p.grafica} />
+                    ))}
                   </div>
+                </div>
+
+                <div className="cp-resultado-box">
+                  <span className="cp-resultado-label">Resultado</span>
+                  <span className="cp-resultado-valor">{p.resultado}</span>
                 </div>
               </div>
-            )
-          })()
-        )}
 
-        <button className="cp-btn-volver" onClick={onBack}>
-          ← Volver al menú
-        </button>
-      </div>
-    </div>
+              <GraficaNormal grafica={p.grafica} />
+            </div>
+          </div>
+        </div>
+      )}
+    </Screen>
   )
 }
 

@@ -1,11 +1,20 @@
 // ─────────────────────────────────────────────────────────────
-// VarianzaPanel.jsx  —  Panel 1: Calculadora de Varianza
+// VarianzaPanel.jsx — Calculadora de varianza con procedimiento
 // ─────────────────────────────────────────────────────────────
 
 import { useState } from 'react'
+import './Calculadora.css'
 import { statsApi } from '../utils/api'
 import { useApi } from '../hooks/useApi'
-import './VarianzaPanel.css'
+import { AnimatedNumber, Field, Step, Tiles } from './ui'
+
+const TIPOS = [
+  { value: 'population', sym: 'σ²', title: 'Poblacional', desc: 'Divide entre N' },
+  { value: 'sample', sym: 's²', title: 'Muestral', desc: 'Divide entre N − 1' },
+]
+
+const parseDatos = (raw) =>
+  raw.split(/[,\s;]+/).map((s) => parseFloat(s)).filter((v) => !isNaN(v))
 
 export default function VarianzaPanel() {
   const [rawInput, setRawInput] = useState('4, 8, 15, 16, 23, 42')
@@ -13,12 +22,10 @@ export default function VarianzaPanel() {
   const { data, loading, error, execute } = useApi(statsApi.variance)
   const [formError, setFormError] = useState(null)
 
-  const handleCalculate = () => {
-    const parsed = rawInput
-      .split(',')
-      .map((s) => parseFloat(s.trim()))
-      .filter((v) => !isNaN(v))
+  const parsed = parseDatos(rawInput)
 
+  const handleCalculate = (e) => {
+    e.preventDefault()
     if (parsed.length < 2) {
       setFormError('Ingresa al menos 2 valores numéricos separados por coma.')
       return
@@ -27,134 +34,94 @@ export default function VarianzaPanel() {
     execute(parsed, type)
   }
 
+  const err = formError || error
+  const isPop = data?.type === 'population'
+
   return (
-    <div className="panel-content">
-      <h2 className="panel-title">Calculadora de Varianza</h2>
+    <div className="calc-grid single">
+      <form className="panel" onSubmit={handleCalculate} noValidate>
+        <Step n="1" title="Tus datos">
+          <Field label="Valores separados por coma" adorn="x₁, x₂, …"
+            hint={parsed.length > 0 ? `${parsed.length} valores detectados` : 'Escribe al menos 2 números'}>
+            <input className="field-input" type="text" inputMode="decimal"
+              value={rawInput} onChange={(e) => setRawInput(e.target.value)}
+              placeholder="4, 8, 15, 16, 23, 42" />
+          </Field>
+          {parsed.length > 0 && (
+            <ul className="chips" aria-label="Valores detectados">
+              {parsed.slice(0, 14).map((v, i) => (
+                <li key={`${i}-${v}`} className="chip" style={{ '--i': i }}>{v}</li>
+              ))}
+              {parsed.length > 14 && <li className="chip chip-more">+{parsed.length - 14}</li>}
+            </ul>
+          )}
+        </Step>
 
-      <div className="form-group">
-        <label className="form-label" htmlFor="var-datos">Datos (separados por coma)</label>
-        <input
-          id="var-datos"
-          className="form-input"
-          type="text"
-          value={rawInput}
-          onChange={(e) => setRawInput(e.target.value)}
-          placeholder="ej: 4, 8, 15, 16, 23, 42"
-        />
-      </div>
+        <Step n="2" title="Tipo de varianza">
+          <Tiles label="Tipo de varianza" value={type} onChange={setType} options={TIPOS} />
+        </Step>
 
-      <div className="form-group">
-        <label className="form-label" htmlFor="var-tipo">Tipo de varianza</label>
-        <select
-          id="var-tipo"
-          className="form-select"
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-        >
-          <option value="population">Poblacional (σ²) — dividir entre N</option>
-          <option value="sample">Muestral (s²) — dividir entre N−1</option>
-        </select>
-      </div>
+        {err && <div className="alert alert-error" role="alert">{err}</div>}
 
-      <div className="action-row">
-        <button
-          className="btn btn-primary"
-          onClick={handleCalculate}
-          disabled={loading}
-        >
-          {loading ? 'Calculando…' : 'Calcular'}
-        </button>
-      </div>
+        <div className="actions">
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            {loading ? 'Calculando…' : 'Calcular'}
+          </button>
+        </div>
+      </form>
 
-      {(formError || error) && (
-        <div className="alert alert-error" role="alert">{formError || error}</div>
-      )}
+      <div className="stage">
+        {data ? (
+          <div className="stage-inner" key={`${data.variance}-${data.type}`}>
+            <header className="hero-result">
+              <p className="hero-eyebrow">{isPop ? 'Varianza poblacional σ²' : 'Varianza muestral s²'}</p>
+              <p className="hero-value"><AnimatedNumber text={Number(data.variance).toFixed(4)} /></p>
+              <p className="hero-caption">Desviación estándar {Number(data.standardDeviation).toFixed(4)}</p>
+            </header>
 
-      {data && (
-        <>
-          <div className="metrics-grid">
-            <MetricCard label="Media (x̄)" value={data.mean} />
-            <MetricCard
-              label={data.type === 'population' ? 'Varianza (σ²)' : 'Varianza (s²)'}
-              value={data.variance}
-            />
-            <MetricCard label="Desv. estándar" value={data.standardDeviation} />
-            <MetricCard label="N (datos)" value={data.n} decimals={0} />
+            <div className="stat-grid">
+              {[
+                ['Media x̄', Number(data.mean).toFixed(4)],
+                ['Desviación estándar', Number(data.standardDeviation).toFixed(4)],
+                ['Datos (n)', String(data.n)],
+              ].map(([l, v], i) => (
+                <div key={l} className="stat stagger" style={{ '--i': i }}>
+                  <span className="stat-label">{l}</span>
+                  <span className="stat-value"><AnimatedNumber text={v} /></span>
+                </div>
+              ))}
+            </div>
+
+            <h2 className="section-title">Procedimiento</h2>
+            <ol className="timeline">
+              {[
+                ['Total de datos', <>n = <b className="highlight">{data.n}</b></>],
+                ['Media aritmética', <>x̄ = <b className="highlight">{data.mean}</b></>],
+                ['Desviaciones cuadradas Σ(xᵢ − x̄)²', data.deviations.join(', ')],
+                ['Suma de desviaciones cuadradas', <>Σ = <b className="highlight">{data.deviations.reduce((a, b) => +(a + b).toFixed(6), 0)}</b></>],
+                ['Varianza', <>{isPop ? 'σ²' : 's²'} = Σ ÷ {isPop ? data.n : data.n - 1} = <b className="highlight">{data.variance}</b></>],
+                ['Desviación estándar', <>√varianza = <b className="highlight">{data.standardDeviation}</b></>],
+              ].map(([label, expr], i) => (
+                <li key={label} className="timeline-item stagger" style={{ '--i': i }}>
+                  <span className="timeline-dot">{i + 1}</span>
+                  <div>
+                    <p className="timeline-label">{label}</p>
+                    <p className="timeline-expr">{expr}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
           </div>
-
-          <div className="steps-box">
-            <p className="steps-title">Procedimiento</p>
-
-            <div className="step-card">
-              <span className="step-number">1</span>
-              <span className="step-inline">
-                <span className="step-label">Total de datos</span>
-                <span className="step-expr">n = <span className="highlight">{data.n}</span></span>
-              </span>
-            </div>
-
-            <div className="step-card">
-              <span className="step-number">2</span>
-              <span className="step-inline">
-                <span className="step-label">Media aritmética</span>
-                <span className="step-expr">x̄ = <span className="highlight">{data.mean}</span></span>
-              </span>
-            </div>
-
-            <div className="step-card">
-              <span className="step-number">3</span>
-              <span className="step-inline">
-                <span className="step-label">Desviaciones cuadradas — Σ(xᵢ − x̄)²</span>
-                <span className="step-expr">{data.deviations.join(', ')}</span>
-              </span>
-            </div>
-
-            <div className="step-card">
-              <span className="step-number">4</span>
-              <span className="step-inline">
-                <span className="step-label">Suma de desviaciones cuadradas</span>
-                <span className="step-expr">
-                  Σ = <span className="highlight">
-                    {data.deviations.reduce((a, b) => +(a + b).toFixed(6), 0)}
-                  </span>
-                </span>
-              </span>
-            </div>
-
-            <div className="step-card">
-              <span className="step-number">5</span>
-              <span className="step-inline">
-                <span className="step-label">Varianza</span>
-                <span className="step-expr">
-                  {data.type === 'population' ? 'σ²' : 's²'} = Σ ÷{' '}
-                  {data.type === 'population' ? data.n : data.n - 1} ={' '}
-                  <span className="highlight">{data.variance}</span>
-                </span>
-              </span>
-            </div>
-
-            <div className="step-card">
-              <span className="step-number">6</span>
-              <span className="step-inline">
-                <span className="step-label">Desviación estándar</span>
-                <span className="step-expr">
-                  √varianza = <span className="highlight">{data.standardDeviation}</span>
-                </span>
-              </span>
-            </div>
+        ) : (
+          <div className="stage-inner">
+            <header className="hero-result">
+              <p className="hero-eyebrow">Resultado</p>
+              <p className="hero-value hero-empty">—</p>
+              <p className="hero-caption">Pulsa «Calcular» para ver la varianza y el procedimiento paso a paso.</p>
+            </header>
           </div>
-        </>
-      )}
-    </div>
-  )
-}
-
-function MetricCard({ label, value, decimals = 4 }) {
-  const display = typeof value === 'number' ? value.toFixed(decimals) : value
-  return (
-    <div className="metric-card">
-      <span className="metric-label">{label}</span>
-      <span className="metric-value">{display}</span>
+        )}
+      </div>
     </div>
   )
 }

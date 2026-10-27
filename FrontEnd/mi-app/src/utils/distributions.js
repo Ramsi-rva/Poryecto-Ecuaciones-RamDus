@@ -344,3 +344,53 @@ export function meanTest({ mean, mu0, sd, n, alpha, tail, known }) {
   const crit = criticalValue(alpha, tail, dist)
   return { stat, p, crit, se, dist, reject: p < alpha }
 }
+
+// ══ ANOVA DE UN FACTOR Y LSD DE FISHER ═══════════════════════
+
+// P(F ≥ x) sin perder precisión en la cola
+export function fSf(x, d1, d2) {
+  if (x <= 0) return 1
+  if (x === Infinity) return 0
+  return betaInc(d2 / (d2 + d1 * x), d2 / 2, d1 / 2)
+}
+
+// groups: arreglo de arreglos de números (admite tamaños distintos)
+export function anovaOneWay(groups, alpha) {
+  const K = groups.length
+  const ns = groups.map((g) => g.length)
+  const N = ns.reduce((a, b) => a + b, 0)
+  const sums = groups.map((g) => g.reduce((a, b) => a + b, 0))
+  const means = sums.map((s, i) => s / ns[i])
+  const grand = sums.reduce((a, b) => a + b, 0) / N
+  const vars = groups.map((g, i) => (g.length > 1
+    ? g.reduce((a, y) => a + (y - means[i]) ** 2, 0) / (g.length - 1) : 0))
+  const sctr = groups.reduce((s, _, i) => s + ns[i] * (means[i] - grand) ** 2, 0)
+  const sce = groups.reduce((s, g, i) => s + g.reduce((a, y) => a + (y - means[i]) ** 2, 0), 0)
+  const stc = sctr + sce
+  const dfTr = K - 1
+  const dfE = N - K
+  const cmtr = sctr / dfTr
+  const cme = sce / dfE
+  const F = cmtr / cme
+  const p = fSf(F, dfTr, dfE)
+  const fCrit = fInv(1 - alpha, dfTr, dfE)
+  return {
+    K, N, ns, sums, means, vars, grand,
+    sctr, sce, stc, dfTr, dfE, dfTotal: N - 1, cmtr, cme, F, p, fCrit,
+    reject: F >= fCrit,
+  }
+}
+
+// Todas las parejas (i < j) con su LSD individual (admite n distintos)
+export function lsdPairs(res, alpha) {
+  const t = tInv(1 - alpha / 2, res.dfE)
+  const pairs = []
+  for (let i = 0; i < res.K; i++) {
+    for (let j = i + 1; j < res.K; j++) {
+      const lsd = t * Math.sqrt(res.cme * (1 / res.ns[i] + 1 / res.ns[j]))
+      const diff = Math.abs(res.means[i] - res.means[j])
+      pairs.push({ i, j, diff, lsd, reject: diff >= lsd })
+    }
+  }
+  return { t, pairs }
+}

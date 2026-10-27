@@ -115,3 +115,49 @@ describe('Inferencia para la media', () => {
     expect(t.reject).toBe(true)
   })
 })
+
+describe('ANOVA de un factor y LSD de Fisher', () => {
+  const tabletas = [[5.2, 4.7, 8.1, 6.2, 3.0], [9.1, 7.1, 8.2, 6.0, 9.1], [3.2, 5.8, 2.2, 3.1, 7.2]]
+  const maquinas = [
+    [6.4, 7.8, 5.3, 7.4, 8.4, 7.3], [8.7, 7.4, 9.4, 10.1, 9.2, 9.8],
+    [11.1, 10.3, 9.7, 10.3, 9.2, 8.8], [9.9, 12.8, 12.1, 10.8, 11.3, 11.5],
+  ]
+  const tratamientos = [[32, 30, 30, 26, 32], [44, 43, 44, 46, 48], [33, 36, 35, 36, 40]]
+
+  it('actividad 3.1 (tabletas)', () => {
+    const r = d.anovaOneWay(tabletas, 0.05)
+    close(r.sctr, 33.852, 1e-3)
+    close(r.sce, 39.152, 1e-3)
+    close(r.stc, 73.004, 1e-3)
+    close(r.cmtr, 16.926, 1e-3)
+    close(r.F, 5.1878, 1e-3)
+    close(r.fCrit, 3.8853, 1e-3)
+    expect(r.reject).toBe(true)
+  })
+  it('actividad 3.2 (tres tratamientos)', () => {
+    const r = d.anovaOneWay(tratamientos, 0.05)
+    close(r.sctr, 570, 1e-9)
+    close(r.sce, 66, 1e-9)
+    close(r.F, 51.8182, 1e-3)
+    const l = d.lsdPairs(r, 0.05)
+    close(l.t, 2.1788, 1e-3)
+    close(l.pairs[0].lsd, 3.23, 5e-3)
+    expect(l.pairs.every((p) => p.reject)).toBe(true)
+  })
+  it('cuatro máquinas y sus seis comparaciones LSD', () => {
+    const r = d.anovaOneWay(maquinas, 0.05)
+    close(r.sctr, 57.765, 1e-3)
+    close(r.sce, 19.26, 1e-3)
+    close(r.F, 19.9948, 1e-3)
+    close(r.fCrit, 3.0984, 1e-3)
+    const l = d.lsdPairs(r, 0.05)
+    close(l.pairs[0].lsd, 1.181, 1e-3)
+    // M2 vs M3 es la única que no se rechaza
+    const noRech = l.pairs.filter((p) => !p.reject).map((p) => `${p.i + 1}-${p.j + 1}`)
+    expect(noRech).toEqual(['2-3'])
+  })
+  it('valor p en la cola derecha coherente con la CDF', () => {
+    close(d.fSf(3.3258, 5, 10), 0.05, 1e-4)
+    close(d.fSf(4, 3, 12), 1 - d.fCdf(4, 3, 12), 1e-12)
+  })
+})

@@ -578,3 +578,60 @@
 @media (max-width: 640px) { .actions .btn { flex: 1 1 0; padding: 0 16px; } }
 
 .hero-long { font-size: clamp(1.7rem, 8cqi, 3.6rem); }
+
+/* ─── ANOVA y LSD ─────────────────────────────────────────── */
+.step-note { margin: -4px 0 16px; font-size: 0.98rem; line-height: 1.5; color: var(--text-2); }
+
+.group-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 14px; }
+.group-card {
+  padding: 16px;
+  border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--line);
+  animation: pop 0.4s var(--ease) both;
+}
+.group-head { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 14px; }
+.group-head .group-name { flex: 1; margin-bottom: 0; }
+.field-textarea { height: auto; min-height: 92px; padding: 14px 18px; resize: vertical; line-height: 1.5; }
+.btn-add { width: 100%; }
+.btn-add:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.stage-extra { margin-top: 18px; }
+.block {
+  padding: clamp(18px, 2.4vw, 26px);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.block-title { margin: 0 0 14px; font-size: 1.3rem; }
+.stage-extra > section > .block-title { padding-left: 4px; }
+.block-note { margin: 0 0 14px; font-size: 1rem; line-height: 1.55; color: var(--text-2); }
+.block-note b { color: var(--gold); font-family: var(--font-serif); font-weight: 600; }
+
+.facts { display: flex; flex-direction: column; gap: 12px; margin: 0; }
+.facts > div { display: grid; grid-template-columns: 110px 1fr; gap: 14px; align-items: baseline; }
+.facts dt { font-size: 0.82rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
+.facts dd { margin: 0; font-size: 1.08rem; line-height: 1.55; overflow-wrap: anywhere; }
+.facts b { color: var(--gold); font-family: var(--font-serif); font-weight: 600; }
+.facts b.tag-keep, .table b.tag-keep { color: var(--accent-soft); }
+.facts b.tag-reject, .table b.tag-reject { color: var(--gold); }
+
+.formula {
+  margin: 0 0 10px;
+  font-family: var(--font-serif);
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.table-compact th, .table-compact td { padding: 13px 12px; }
+.table-compact th { font-size: 0.74rem; letter-spacing: 0.05em; white-space: normal; vertical-align: bottom; }
+.table-compact td { white-space: nowrap; }
+.table-compact th:first-child, .table-compact td:first-child { padding-left: 18px; }
+.table-compact td { font-size: 1.05rem; }
+.table-compact td:first-child { font-family: var(--font-sans); font-weight: 500; }
+.table-compact td b { font-family: var(--font-sans); font-size: 0.95rem; font-weight: 600; }
+
+@media (max-width: 640px) {
+  .facts > div { grid-template-columns: 1fr; gap: 2px; }
+}

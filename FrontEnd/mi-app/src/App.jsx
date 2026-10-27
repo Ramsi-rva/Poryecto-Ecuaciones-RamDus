@@ -5,6 +5,7 @@ import DistribucionTStudent from './components/DistribucionTStudent'
 import DistribucionDiscreta from './components/DistribucionDiscreta'
 import DistribucionChiF from './components/DistribucionChiF'
 import Inferencia from './components/Inferencia'
+import AnovaFisher from './components/AnovaFisher'
 import ColeccionProblemas from './components/ColeccionProblemas'
 import VarianzaPanel from './components/VarianzaPanel'
 import ValorEsperadoPanel from './components/ValorEsperadoPanel'
@@ -13,7 +14,7 @@ import heroImg from './media/fondo.png'
 
 const VISTAS = [
   'varianza', 'valor-esperado', 'distribucion-normal', 'distribucion-t',
-  'chi-f', 'discretas', 'inferencia', 'coleccion-problemas',
+  'chi-f', 'discretas', 'inferencia', 'anova', 'coleccion-problemas',
 ]
 
 // La vista vive en el hash de la URL (#varianza, #distribucion-t, …) para que
@@ -86,6 +87,10 @@ function App() {
     return <Inferencia onBack={() => setVista('menu')} />
   }
 
+  if (vista === 'anova') {
+    return <AnovaFisher onBack={() => setVista('menu')} />
+  }
+
   if (vista === 'coleccion-problemas') {
     return <ColeccionProblemas onBack={() => setVista('menu')} />
   }
@@ -119,7 +124,7 @@ function App() {
 
       <div className="menu-head">
         <h2 className="menu-title">Calculadoras</h2>
-        <span className="menu-count">8 herramientas</span>
+        <span className="menu-count">9 herramientas</span>
       </div>
 
       <div className="calculator-grid" onMouseMove={luz}>
@@ -214,7 +219,20 @@ function App() {
           <p>Intervalos de confianza y pruebas de hipótesis con z o t, y su región de rechazo.</p>
           <span className="card-go" aria-hidden="true">Abrir →</span>
         </div>
-        <div className="calculator-card stagger" style={{ '--i': 7 }} {...abrir('coleccion-problemas')}>
+        <div className="calculator-card stagger" style={{ '--i': 7 }} {...abrir('anova')}>
+          <div className="card-top">
+            <div className="card-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="6" cy="14" r="2.2" /><circle cx="12" cy="8" r="2.2" /><circle cx="18" cy="16" r="2.2" /><line x1="3" y1="21" x2="21" y2="21" />
+              </svg>
+            </div>
+            <span className="card-tag">Inferencia</span>
+          </div>
+          <h3>ANOVA y LSD de Fisher</h3>
+          <p>Compara varias medias: tabla ANOVA, F crítico, decisión y comparaciones por pares.</p>
+          <span className="card-go" aria-hidden="true">Abrir →</span>
+        </div>
+        <div className="calculator-card stagger" style={{ '--i': 8 }} {...abrir('coleccion-problemas')}>
           <div className="card-top">
             <div className="card-icon">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

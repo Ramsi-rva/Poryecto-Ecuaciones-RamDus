@@ -73,6 +73,29 @@ function makeF(d1, d2, hi) {
   return (x) => Math.min(fPdf(x, d1, d2), cap)
 }
 
+// Desglose del cálculo de SCTR, SCE y STC, grupo por grupo
+function desglose(datos, res) {
+  const grupos = datos.map((d, i) => {
+    const mean = res.means[i]
+    const obs = d.nums.map((y) => ({ y, dI: y - mean, dG: y - res.grand }))
+    return {
+      nombre: d.nombre,
+      n: d.nums.length,
+      mean,
+      sum: res.sums[i],
+      sctr: d.nums.length * (mean - res.grand) ** 2,
+      sce: obs.reduce((a, o) => a + o.dI ** 2, 0),
+      stc: obs.reduce((a, o) => a + o.dG ** 2, 0),
+      obs,
+    }
+  })
+  return {
+    grupos,
+    sumaTotal: grupos.reduce((a, g) => a + g.sum, 0),
+    stcDirecto: grupos.reduce((a, g) => a + g.stc, 0),
+  }
+}
+
 // Calcula todo a partir del texto de los grupos (función pura)
 function calcular(grupos, alphaP) {
   if (isNaN(alphaP)) return { error: 'Ingresa un nivel de significancia α válido (0.05 o 5).' }
@@ -142,6 +165,7 @@ export default function AnovaFisher({ onBack }) {
     ? { regions: [[res.fCrit, Infinity]], cuts: [res.fCrit], marker: { x: res.F, label: `F = ${fmt(res.F, 2)}` } }
     : { regions: [], cuts: [], marker: null }
 
+  const desg = res ? desglose(calc.datos, res) : null
   const nombreLista = calc.datos ? calc.datos.map((d) => d.nombre) : []
   const mismosN = res ? res.ns.every((n) => n === res.ns[0]) : true
 
@@ -263,8 +287,73 @@ export default function AnovaFisher({ onBack }) {
                 </div>
               </section>
 
+              {/* Cálculo de SCTR, SCE y STC */}
+              <section className="block stagger" style={{ '--i': 2 }}>
+                <h3 className="block-title">Cálculo de SCTR, SCE y STC</h3>
+                <p className="block-note">
+                  Media global: ȳ = ΣΣyᵢⱼ / N = {fmt(desg.sumaTotal, 2)} / {res.N} = <b>{fmt(res.grand)}</b>
+                </p>
+                <div className="formula-list">
+                  <p className="formula">SCTR = Σ nᵢ (x̄ᵢ − ȳ)²</p>
+                  <p className="formula">SCE = ΣΣ (yᵢⱼ − x̄ᵢ)²</p>
+                  <p className="formula">STC = ΣΣ (yᵢⱼ − ȳ)² = SCTR + SCE</p>
+                </div>
+                <div className="table-wrap">
+                  <table className="table table-compact">
+                    <thead>
+                      <tr>
+                        <th>Grupo</th><th>nᵢ</th><th>x̄ᵢ</th>
+                        <th>nᵢ(x̄ᵢ − ȳ)²</th><th>Σ(yᵢⱼ − x̄ᵢ)²</th><th>Σ(yᵢⱼ − ȳ)²</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {desg.grupos.map((g, i) => (
+                        <tr key={g.nombre + i}>
+                          <td>{g.nombre}</td><td>{g.n}</td><td>{fmt(g.mean)}</td>
+                          <td>{fmt(g.sctr)}</td><td>{fmt(g.sce)}</td><td>{fmt(g.stc)}</td>
+                        </tr>
+                      ))}
+                      <tr className="row-total">
+                        <td>Suma</td><td>{res.N}</td><td />
+                        <td><b>SCTR = {fmt(res.sctr)}</b></td>
+                        <td><b>SCE = {fmt(res.sce)}</b></td>
+                        <td><b>STC = {fmt(desg.stcDirecto)}</b></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p className="block-note" style={{ margin: '14px 0 0' }}>
+                  Comprobación: SCTR + SCE = {fmt(res.sctr)} + {fmt(res.sce)} = <b>{fmt(res.sctr + res.sce)}</b>
+                  {Math.abs(res.sctr + res.sce - desg.stcDirecto) < 1e-6 * Math.max(1, res.stc) ? ' = STC ✓' : ''}
+                </p>
+
+                <details className="block-details">
+                  <summary>Ver las desviaciones dato por dato</summary>
+                  {desg.grupos.map((g, gi) => (
+                    <div key={g.nombre + gi} className="detail-group">
+                      <h4>{g.nombre} · x̄ = {fmt(g.mean)}</h4>
+                      <div className="table-wrap">
+                        <table className="table table-compact">
+                          <thead>
+                            <tr><th>yᵢⱼ</th><th>yᵢⱼ − x̄ᵢ</th><th>(yᵢⱼ − x̄ᵢ)²</th><th>yᵢⱼ − ȳ</th><th>(yᵢⱼ − ȳ)²</th></tr>
+                          </thead>
+                          <tbody>
+                            {g.obs.map((o, oi) => (
+                              <tr key={oi}>
+                                <td>{fmt(o.y, 2)}</td><td>{fmt(o.dI)}</td><td>{fmt(o.dI ** 2)}</td>
+                                <td>{fmt(o.dG)}</td><td>{fmt(o.dG ** 2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </details>
+              </section>
+
               {/* Resumen por grupo */}
-              <section className="stagger" style={{ '--i': 2 }}>
+              <section className="stagger" style={{ '--i': 1 }}>
                 <h3 className="block-title">Resumen por grupo</h3>
                 <div className="table-wrap">
                   <table className="table table-compact">

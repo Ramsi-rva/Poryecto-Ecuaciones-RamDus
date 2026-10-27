@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────
 // AnovaFisher.jsx — ANOVA de un factor + prueba LSD de Fisher
-// Sigue el mismo procedimiento de clase: hipótesis, tabla ANOVA,
+// Sigue el procedimiento de clase: hipótesis, tabla ANOVA,
 // F crítico, decisión, conclusión y comparaciones por pares (LSD).
 // ─────────────────────────────────────────────────────────────
 
@@ -14,49 +14,10 @@ import { anovaOneWay, lsdPairs, fPdf, fInv, parseProb } from '../utils/distribut
 const fmt = (v, d = 4) => Number(v).toFixed(d)
 const fmtP = (p) => (p < 0.0001 ? '< 0.0001' : fmt(p, 4))
 
-const EJEMPLOS = [
-  {
-    id: 'tabletas', label: 'Tabletas (act. 3.1)', alpha: '0.05',
-    groups: [
-      { name: 'A', text: '5.2, 4.7, 8.1, 6.2, 3.0' },
-      { name: 'B', text: '9.1, 7.1, 8.2, 6.0, 9.1' },
-      { name: 'C', text: '3.2, 5.8, 2.2, 3.1, 7.2' },
-    ],
-  },
-  {
-    id: 'trat', label: 'Tratamientos (act. 3.2)', alpha: '0.05',
-    groups: [
-      { name: 'A', text: '32, 30, 30, 26, 32' },
-      { name: 'B', text: '44, 43, 44, 46, 48' },
-      { name: 'C', text: '33, 36, 35, 36, 40' },
-    ],
-  },
-  {
-    id: 'maquinas', label: 'Máquinas (act. 3.2)', alpha: '0.05',
-    groups: [
-      { name: 'Máquina 1', text: '6.4, 7.8, 5.3, 7.4, 8.4, 7.3' },
-      { name: 'Máquina 2', text: '8.7, 7.4, 9.4, 10.1, 9.2, 9.8' },
-      { name: 'Máquina 3', text: '11.1, 10.3, 9.7, 10.3, 9.2, 8.8' },
-      { name: 'Máquina 4', text: '9.9, 12.8, 12.1, 10.8, 11.3, 11.5' },
-    ],
-  },
-  {
-    id: 'concreto', label: 'Concreto (5 agregados)', alpha: '0.04',
-    groups: [
-      { name: 'Agregado 1', text: '551, 457, 450, 731, 499, 632' },
-      { name: 'Agregado 2', text: '595, 580, 508, 583, 633, 517' },
-      { name: 'Agregado 3', text: '639, 615, 511, 573, 648, 677' },
-      { name: 'Agregado 4', text: '417, 449, 517, 438, 415, 555' },
-      { name: 'Agregado 5', text: '563, 631, 522, 613, 656, 679' },
-    ],
-  },
-]
-
 const MAX_GRUPOS = 10
 
 let nextId = 1
 const nuevo = (name = '', text = '') => ({ id: nextId++, name, text })
-const desdeEjemplo = (ej) => ej.groups.map((g) => nuevo(g.name, g.text))
 
 // Acepta comas, espacios, punto y coma o saltos de línea. Decimales con punto.
 const parseValores = (text) => {
@@ -120,7 +81,7 @@ function calcular(grupos, alphaP) {
 }
 
 export default function AnovaFisher({ onBack }) {
-  const [grupos, setGrupos] = useState(() => desdeEjemplo(EJEMPLOS[0]))
+  const [grupos, setGrupos] = useState(() => [nuevo(), nuevo()])
   const [alpha, setAlpha] = useState('0.05')
   const [tocado, setTocado] = useState(false)
 
@@ -131,7 +92,6 @@ export default function AnovaFisher({ onBack }) {
   const quitar = (id) => setGrupos((gs) => gs.filter((g) => g.id !== id))
   const agregar = () =>
     setGrupos((gs) => (gs.length >= MAX_GRUPOS ? gs : [...gs, nuevo('', '')]))
-  const cargar = (ej) => { setGrupos(desdeEjemplo(ej)); setAlpha(ej.alpha); setTocado(false) }
   const limpiar = () => { setGrupos([nuevo('', ''), nuevo('', '')]); setAlpha('0.05'); setTocado(false) }
 
   const calc = useMemo(() => calcular(grupos, alphaP), [grupos, alphaP])
@@ -176,14 +136,6 @@ export default function AnovaFisher({ onBack }) {
         <form className="panel" onSubmit={(e) => { e.preventDefault(); setTocado(true) }} noValidate>
           <Step n="1" title="Datos por grupo">
             <p className="step-note">Un grupo por tratamiento o columna. Separa los datos con comas o espacios y usa punto decimal.</p>
-            <div className="chips" role="group" aria-label="Ejemplos de clase" style={{ margin: '0 0 18px' }}>
-              {EJEMPLOS.map((ej) => (
-                <button key={ej.id} type="button" className="chip chip-btn" onClick={() => cargar(ej)}>
-                  {ej.label}
-                </button>
-              ))}
-            </div>
-
             <div className="group-list">
               {grupos.map((g, i) => (
                 <div className="group-card" key={g.id}>
@@ -314,7 +266,7 @@ export default function AnovaFisher({ onBack }) {
                         </tr>
                       ))}
                       <tr className="row-total">
-                        <td>Suma</td><td>{res.N}</td><td />
+                        <td>Suma / media general</td><td>{res.N}</td><td><b>ȳ = {fmt(res.grand)}</b></td>
                         <td><b>SCTR = {fmt(res.sctr)}</b></td>
                         <td><b>SCE = {fmt(res.sce)}</b></td>
                         <td><b>STC = {fmt(desg.stcDirecto)}</b></td>
@@ -323,6 +275,9 @@ export default function AnovaFisher({ onBack }) {
                   </table>
                 </div>
                 <p className="block-note" style={{ margin: '14px 0 0' }}>
+                  Media de cada grupo: {desg.grupos.map((g) => `${g.nombre} = ${fmt(g.mean)}`).join(' · ')} · Media general ȳ = {fmt(res.grand)}
+                </p>
+                <p className="block-note" style={{ margin: '8px 0 0' }}>
                   Comprobación: SCTR + SCE = {fmt(res.sctr)} + {fmt(res.sce)} = <b>{fmt(res.sctr + res.sce)}</b>
                   {Math.abs(res.sctr + res.sce - desg.stcDirecto) < 1e-6 * Math.max(1, res.stc) ? ' = STC ✓' : ''}
                 </p>
